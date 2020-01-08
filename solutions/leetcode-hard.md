@@ -1,13 +1,5 @@
----
-title: Leetcode Hard难度 题解
-date: 2019-04-26 21:04:46
-tags:
-categories:
-- Leetcode
-mathjax: true
----
-只写简单和中等题就是在摸鱼罢。
-<!-- more -->
+# Leetcode Hard难度 题解
+只写简单和中等题就是在摸鱼。
 
 # 4
 真是一个不错的题。
