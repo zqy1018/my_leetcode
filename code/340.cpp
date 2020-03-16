@@ -28,16 +28,35 @@ struct ListNode {
 };
 
 class Solution {
-public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
+    int cnt[130], l, tot, cur;
+    inline void upd(string& s, int k){
+        while (tot < k && cur < l){
+            if (!cnt[s[cur]])
+                ++tot;
+            ++cnt[s[cur]];
+            ++cur;
         }
-        while (x < n)
-            x <<= 1, ++ans;
+        while (cur < l){
+            if (!cnt[s[cur]])
+                break;
+            ++cnt[s[cur]];
+            ++cur;
+        }
+    }
+public:
+    int lengthOfLongestSubstringKDistinct(string s, int k) {
+        l = s.length();
+        tot = 0, cur = 0;
+        upd(s, k);
+        if (cur == l) return l;
+        int ans = cur;
+        for (int i = 1; i < l; ++i){
+            if (cnt[s[i - 1]] == 1)
+                --tot;
+            --cnt[s[i - 1]];
+            upd(s, k);
+            ans = max(ans, cur - i);
+        }
         return ans;
     }
 };

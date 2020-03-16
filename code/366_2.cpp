@@ -27,17 +27,33 @@ struct ListNode {
     ListNode(int x) : val(x), next(NULL) {}
 };
 
+ostream& operator << (ostream& os, const vector<int>& vec){
+    for (int x: vec)
+        os << x << " ";
+    os << endl;
+}
+
+ostream& operator << (ostream& os, const vector<vector<int>>& vec){
+    for (auto& v: vec){
+        for (int x: v)
+            os << x << " ";
+        os << endl;
+    }
+}
+
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
-        }
-        while (x < n)
-            x <<= 1, ++ans;
+    vector<vector<int>> ans;
+    int dfs(TreeNode* cur){
+        if (cur == nullptr) return 0;
+        int h = max(dfs(cur->left), dfs(cur->right)) + 1;
+        while (h > ans.size())
+            ans.push_back(vector<int>());
+        ans[h - 1].push_back(cur->val);
+        return h;
+    }
+    vector<vector<int>> findLeaves(TreeNode* root) {
+        dfs(root);
         return ans;
     }
 };

@@ -29,15 +29,30 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
+    int f[505][505];
+    int minInsertions(string s) {
+        int l = s.length();
+        for (int i = 0; i < l; ++i){
+            for (int j = 0; j < l; ++j){
+                if (s[i] == s[l - j - 1]){
+                    f[i + 1][j + 1] = 1 + f[i][j];
+                }else {
+                    f[i + 1][j + 1] = max(f[i + 1][j], f[i][j + 1]);
+                }
+            }
         }
-        while (x < n)
-            x <<= 1, ++ans;
+        // single
+        int ans = l;
+        for (int i = 0; i < l; ++i){
+            int dis = l - 1 - f[i][l - i - 1];
+            ans = min(ans, dis);
+        }
+        // double
+        for (int i = 0; i < l - 1; ++i){
+            if (s[i] != s[i + 1]) continue;
+            int dis = l - 2 - f[i][l - i - 2];
+            ans = min(ans, dis);
+        }
         return ans;
     }
 };

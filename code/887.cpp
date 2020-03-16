@@ -29,16 +29,15 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
-        }
-        while (x < n)
-            x <<= 1, ++ans;
-        return ans;
+    int f[105][10005]; 
+    int superEggDrop(int K, int N) { 
+        for (int i = 1; i <= N; ++i) 
+            f[1][i] = i;
+        for (int i = 2; i <= K; ++i)
+            for (int j = 1; j <= N; ++j){
+
+            }
+        
     }
 };
 Solution sol;

@@ -29,21 +29,33 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
-        }
-        while (x < n)
-            x <<= 1, ++ans;
-        return ans;
+    int sum[10005];
+    double findMaxAverage(vector<int>& nums, int k) {
+        double l = -10000, r = 10000;
+        int n = nums.size();
+        for (int i = 1; i <= n; ++i)
+            sum[i] = sum[i - 1] + nums[i - 1];
+        while (r - l > 1e-6){
+            double mid = (l + r) * 0.5;
+            double mini = 1e9;
+            bool flag = false;
+            for (int i = k; i <= n; ++i){
+                mini = min(mini, sum[i - k] - mid * (i - k));
+                if (sum[i] - mid * i >= mini){
+                    flag = true; 
+                    break;
+                }
+            }
+            if (flag) l = mid;
+            else r = mid;
+        } 
+        return l;
     }
 };
 Solution sol;
 void init(){
-    
+    vector<int> vec{1,12,-5,-6,50,3};
+    cout << sol.findMaxAverage(vec, 4) << endl;
 }
 void solve(){
     // sol.convert();

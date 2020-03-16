@@ -29,21 +29,22 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
-        }
-        while (x < n)
-            x <<= 1, ++ans;
+    int inv[1005];
+    int numberOfWays(int num_people) {
+        num_people >>= 1;
+        const int M = 1000000007;
+        inv[1] = 1;
+        int ans = 1;
+        for (int i = 2; i <= num_people + 1; ++i)
+            inv[i] = 1ll * (M - M / i) * inv[M % i] % M, 
+            ans = 1ll * ans * inv[i] % M, 
+            ans = 1ll * ans * (i + num_people - 1) % M;
         return ans;
     }
 };
 Solution sol;
 void init(){
-    
+    cout << sol.numberOfWays(8) << endl;
 }
 void solve(){
     // sol.convert();

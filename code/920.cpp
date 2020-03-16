@@ -27,18 +27,35 @@ struct ListNode {
     ListNode(int x) : val(x), next(NULL) {}
 };
 
+ostream& operator << (ostream& os, const vector<int>& vec){
+    for (int x: vec)
+        os << x << " ";
+    os << endl;
+    return os;
+}
+
+ostream& operator << (ostream& os, const vector<vector<int>>& vec){
+    for (auto& v: vec){
+        for (int x: v)
+            os << x << " ";
+        os << endl;
+    }
+    return os;
+}
+
 class Solution {
+    int f[105][105];
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
-        }
-        while (x < n)
-            x <<= 1, ++ans;
-        return ans;
+    int numMusicPlaylists(int N, int L, int K) {
+        if (L < N) return 0;
+        const int M = 1000000007;
+        f[0][0] = 1;
+        for (int i = 1; i <= L; ++i)
+            for (int j = 1; j <= N; ++j)
+                f[i][j] = 1ll * f[i - 1][j - 1] * (N - j + 1) % M + 
+                    1ll * f[i - 1][j] * max(j - K, 0) % M,
+                f[i][j] %= M;
+        return f[L][N];
     }
 };
 Solution sol;

@@ -27,23 +27,34 @@ struct ListNode {
     ListNode(int x) : val(x), next(NULL) {}
 };
 
+template<typename T>
+ostream& operator << (ostream& os, const vector<T>& vec){
+    for (auto x: vec)
+        os << x << " ";
+    os << endl;
+    return os;
+}
+
+template<typename T>
+ostream& operator << (ostream& os, const vector<vector<T>>& vec){
+    for (auto& v: vec){
+        for (auto x: v)
+            os << x << " ";
+        os << endl;
+    }
+    return os;
+}
+
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
-        }
-        while (x < n)
-            x <<= 1, ++ans;
-        return ans;
+    ListNode* removeZeroSumSublists(ListNode* head) {
+
     }
 };
 Solution sol;
 void init(){
-    
+    unordered_map<int, int> mp;
+    cout << mp[1] << endl;
 }
 void solve(){
     // sol.convert();

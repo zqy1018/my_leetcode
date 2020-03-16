@@ -29,15 +29,14 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
-        }
-        while (x < n)
-            x <<= 1, ++ans;
+    vector<int> ans;
+    vector<int> getModifiedArray(int length, vector<vector<int>>& updates) {
+        ans = vector<int>(length + 1, 0);
+        for (auto& q: updates)
+            ans[q[0]] += q[2], ans[q[1] + 1] -= q[2];
+        for (int i = 1; i < length; ++i)
+            ans[i] += ans[i - 1];
+        ans.pop_back();
         return ans;
     }
 };

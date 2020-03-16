@@ -29,15 +29,25 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
+    int du[5005], dis[5005];
+    vector<int> to[5005];
+    int minimumSemesters(int N, vector<vector<int>>& relations) {
+        for (auto& p: relations)
+            ++du[p[1]], to[p[0]].push_back(p[1]);
+        queue<int> q;
+        int cnt = 0, ans = 1;
+        for (int i = 1; i <= N; ++i)    
+            if (!du[i])
+                dis[i] = 1, q.push(i);
+        while (!q.empty()){
+            int h = q.front();
+            q.pop(), ++cnt;
+            for (int v: to[h]){
+                --du[v], dis[v] = max(dis[v], dis[h] + 1);
+                if (!du[v]) q.push(v), ans = max(ans, dis[v]);
+            }
         }
-        while (x < n)
-            x <<= 1, ++ans;
+        if (cnt < N) return -1;
         return ans;
     }
 };

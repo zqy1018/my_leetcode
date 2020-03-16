@@ -29,15 +29,23 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
+    int f[105][105];
+    int maxVacationDays(vector<vector<int>>& flights, vector<vector<int>>& days) {
+        int n = flights.size(), k = days[0].size();
+        memset(f, -1, sizeof(f));
+        f[0][0] = 0;
+        for (int i = 1; i <= k; ++i){
+            for (int j = 0; j < n; ++j){
+                for (int fr = 0; fr < n; ++fr){
+                    if (f[i - 1][fr] < 0) continue;
+                    if (fr == j || flights[fr][j])
+                        f[i][j] = max(f[i][j], f[i - 1][fr] + days[j][i - 1]);
+                }
+            }
         }
-        while (x < n)
-            x <<= 1, ++ans;
+        int ans = 0;
+        for (int i = 0; i < n; ++i)
+            ans = max(ans, f[k][i]);
         return ans;
     }
 };

@@ -29,16 +29,8 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
-        }
-        while (x < n)
-            x <<= 1, ++ans;
-        return ans;
+    ListNode* removeZeroSumSublists(ListNode* head) {
+
     }
 };
 Solution sol;

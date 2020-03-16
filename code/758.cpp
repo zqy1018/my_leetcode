@@ -29,15 +29,32 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
+    bool vis[505];
+    string boldWords(vector<string>& words, string S) {
+        int l = S.length();
+        for (auto& w: words){
+            int cur = 0, ll = w.length();
+            for (; ; ){
+                int t = S.find(w, cur);
+                if (t == -1) break;
+                for (int i = 0; i < ll; ++i)
+                    vis[t + i] = true;
+                cur = t + 1;
+            }
         }
-        while (x < n)
-            x <<= 1, ++ans;
+        string ans;
+        for (int i = 0; i < l; ){
+            if (!vis[i])
+                ans.push_back(S[i]), ++i;
+            else{
+                int j = i;
+                ans += "<b>";
+                while (j < l && vis[j])
+                    ans.push_back(S[j]), ++j;
+                ans += "</b>";
+                i = j;
+            }
+        }
         return ans;
     }
 };

@@ -28,9 +28,27 @@ struct ListNode {
 };
 
 class Solution {
+    priority_queue<int> pq;
+    pair<double, int> pp[10005];
 public:
     double mincostToHireWorkers(vector<int>& quality, vector<int>& wage, int K) {
-        // 按照单位工资排序，枚举单位工资限度，跑三分？
+        int n = quality.size();
+        for (int i = 0; i < n; ++i)
+            pp[i].first = 1.0 * wage[i] / quality[i], 
+            pp[i].second = i;
+        sort(pp, pp + n);
+        int sum = 0;
+        for (int i = 0; i < K; ++i)
+            pq.push(quality[pp[i].second]), 
+            sum += quality[pp[i].second];
+        double ans = 1e10;
+        for (int i = K; i < n; ++i){
+            ans = min(ans, pp[i - 1].first * sum);
+            pq.push(quality[pp[i].second]), sum += quality[pp[i].second];
+            sum -= pq.top(), pq.pop();
+        }
+        ans = min(ans, pp[n - 1].first * sum);
+        return ans;
     }
 };
 

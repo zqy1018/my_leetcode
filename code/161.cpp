@@ -29,16 +29,24 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
-        }
-        while (x < n)
-            x <<= 1, ++ans;
-        return ans;
+    int n, m;
+    bool cmp(int st1, int st2, string& s, string& t){
+        if (n - st1 != m - st2)
+            return false;
+        for (int i = 0; i < n - st1; ++i)
+            if (s[st1 + i] != t[st2 + i])
+                return false;
+        return true;
+    } 
+    bool isOneEditDistance(string s, string t) {
+        if (abs(s.length() - t.length()) > 1) return false;
+        int cur = 0;
+        n = s.length(), m = t.length();
+        while (cur < n && cur < m && s[cur] == t[cur])
+            ++cur;
+        if (cur == n || cur == m)
+            return n != m;
+        return cmp(cur + 1, cur, s, t) || cmp(cur, cur + 1, s, t) || cmp(cur + 1, cur + 1, s, t);
     }
 };
 Solution sol;

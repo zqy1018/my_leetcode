@@ -29,15 +29,29 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
+    int ten, K;
+    bool vis[1005][10];
+    string ans;
+    void dfs(int cur){  
+        for (int i = 0; i < K; ++i)
+            if (!vis[cur][i]){
+                vis[cur][i] = true;
+                dfs((cur % ten) * 10 + i);
+            }
+        ans.push_back(cur % 10 + '0');
+    }
+    string crackSafe(int n, int k) {
+        if (n == 1){
+            for (int i = 0; i < k; ++i)
+                ans.push_back(i + '0');
+            return ans;
         }
-        while (x < n)
-            x <<= 1, ++ans;
+        ten = 1, K = k;
+        for (int i = 0; i < n - 2; ++i)
+            ten *= 10;
+        dfs(0);
+        for (int i = 0; i < n - 2; ++i)
+            ans.push_back('0');
         return ans;
     }
 };

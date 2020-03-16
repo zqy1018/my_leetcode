@@ -29,15 +29,24 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
+    int f[205][205];
+    int numPermsDISequence(string S) {
+        const int M = 1000000007;
+        int l = S.length();
+        f[0][1] = 1;
+        for (int i = l - 1; i >= 0; --i){
+            int tot = 0;            // 积累答案
+            if (S[i] == 'D'){
+                for (int j = 1; j <= l - i + 1; ++j)
+                    f[l - i][j] = tot, tot = tot + f[l - i - 1][j] >= M ? tot + f[l - i - 1][j] - M: tot + f[l - i - 1][j];
+            }else {
+                for (int j = l - i; j >= 1; --j)
+                    tot = tot + f[l - i - 1][j] >= M ? tot + f[l - i - 1][j] - M: tot + f[l - i - 1][j], f[l - i][j] = tot;
+            }
         }
-        while (x < n)
-            x <<= 1, ++ans;
+        int ans = 0;
+        for (int i = 1; i <= l + 1; ++i)
+            ans = (ans + f[l][i] >= M ? ans + f[l][i] - M: ans + f[l][i]);
         return ans;
     }
 };

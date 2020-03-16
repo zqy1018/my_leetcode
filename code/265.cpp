@@ -29,15 +29,22 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
+    int f[1005], g[1005], h[1005];
+    int minCostII(vector<vector<int>>& costs) {
+        int n = costs.size(), k = costs[0].size();
+        for (int i = 1; i <= k; ++i)
+            f[i] = costs[0][i - 1];
+        g[0] = h[k + 1] = 0x3f3f3f3f;
+        for (int i = 1; i < n; ++i){
+            for (int j = 1; j <= k; ++j)
+                g[j] = min(g[j - 1], f[j]),
+                h[k - j + 1] = min(h[k - j + 2], f[k - j + 1]);
+            for (int j = 1; j <= k; ++j)
+                f[j] = min(g[j - 1], h[j + 1]) + costs[i][j - 1];
         }
-        while (x < n)
-            x <<= 1, ++ans;
+        int ans = 0x3f3f3f3f;
+        for (int i = 1; i <= k; ++i)
+            ans = min(ans, f[i]);
         return ans;
     }
 };

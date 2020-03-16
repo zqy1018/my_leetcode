@@ -27,18 +27,35 @@ struct ListNode {
     ListNode(int x) : val(x), next(NULL) {}
 };
 
+
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
+    int c[20005], n;
+    bool vis[20005];
+    inline int lowbit(int x){
+        return x & (-x);
+    }
+    int query(int r){
+        int res = 0;
+        while (r > 0)
+            res += c[r], r -= lowbit(r);
+        return res;
+    }
+    void add(int r){
+        while (r <= n)
+            c[r] += 1, r += lowbit(r);
+    }
+    int kEmptySlots(vector<int>& bulbs, int K) {
+        n = bulbs.size();
+        for (int i = 0; i < n - K; ++i){
+            int x = bulbs[i];
+            add(x), vis[x] = true;
+            int ll = query(x - K - 1), mid = query(x), rr = query(x + K + 1);
+            if ((x + K + 1 <= n && vis[x + K + 1] && rr == mid + 1) || 
+                (x - K - 1 > 0 && vis[x - K - 1] && mid == ll + 1))
+                return i + 1;
         }
-        while (x < n)
-            x <<= 1, ++ans;
-        return ans;
+        return -1;
     }
 };
 Solution sol;

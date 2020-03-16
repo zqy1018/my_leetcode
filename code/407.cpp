@@ -27,18 +27,36 @@ struct ListNode {
     ListNode(int x) : val(x), next(NULL) {}
 };
 
+template<typename T>
+ostream& operator << (ostream& os, const vector<T>& vec){
+    for (auto x: vec)
+        os << x << " ";
+    os << endl;
+    return os;
+}
+
+template<typename T>
+ostream& operator << (ostream& os, const vector<vector<T>>& vec){
+    for (auto& v: vec){
+        for (auto x: v)
+            os << x << " ";
+        os << endl;
+    }
+    return os;
+}
+
 class Solution {
+    int minmax[115][115];
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
-        }
-        while (x < n)
-            x <<= 1, ++ans;
-        return ans;
+    int trapRainWater(vector<vector<int>>& heightMap) {
+        int n = heightMap.size();
+        if (!n) return 0;
+        int m = heightMap[0].size();
+        for (int i = 1; i < n - 1; ++i)
+            for (int j = 1; j < m - 1; ++j){
+                
+            }
+        
     }
 };
 Solution sol;

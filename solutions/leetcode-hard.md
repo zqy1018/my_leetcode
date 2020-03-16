@@ -384,8 +384,10 @@ class Solution(object):
 
 # 42
 一开始写了半天单调栈，发现单调栈好像根本搞不出来。。。
-于是放弃，写了一个前缀和后缀最大值，两个间的较小值减掉该位置的高度就是该位置水应当有的高度。这个值可能为负，所以要和0取max。
-说白了写不出就是基础不扎实。。。
+
+对这个题，我们考虑每一个位置水有多深。显然，一个水的深度取决于其左右两边的高度，更具体的说是左右两边高度最大值的较小值。用这个值减掉该位置的高度就是该位置水应当有的高度。这个值可能为负，所以要和 $0$ 取 $\max$。
+
+说白了写不出就是基础不扎实或者是问题没考虑明白。
 ```cpp
 class Solution {
 public:
@@ -935,6 +937,84 @@ public:
 };
 ```
 
+# 126
+本题的数据规模在 5000 以下。
+
+## 方法一
+最简单的做法是直接暴力构图然后跑单向 BFS 找出最短路径的长度，再 DFS 找出最短路径。时间效率不太行。
+```cpp
+class Solution {
+public:
+    int n, dis[5005], l, mindis;
+    bool vis[5005];
+    int tour[5005], tot;
+    vector<vector<string>> ans;
+    vector<int> to[5005];
+    string st;
+    bool ok(string& sa, string& sb){
+        int cnt = 0;
+        for (int i = 0; i < l; ++i) 
+            if (sa[i] != sb[i]){
+                if (cnt) return false;
+                ++cnt;
+            }
+        return cnt == 1;
+    }
+    void dfs(int cur, vector<string>& wordList){
+        if (cur == n){
+            ans.push_back(vector<string>());
+            ans.back().push_back(st);
+            for (int i = 1; i < tot; ++i)
+                ans.back().push_back(wordList[tour[i] - 1]);
+            ans.back().push_back(wordList[n - 1]);
+            return ;
+        }
+        if (dis[cur] == mindis) return ;
+        tour[tot++] = cur;
+        int tt = to[cur].size();
+        for (int i = 0; i < tt; ++i)
+            if (!vis[to[cur][i]])
+                vis[to[cur][i]] = true, dfs(to[cur][i], wordList), vis[to[cur][i]] = false; 
+        --tot;
+    }
+    vector<vector<string>> findLadders(string beginWord, string endWord, vector<string>& wordList) {
+        n = wordList.size(), l = beginWord.length();
+        st = beginWord;
+        for (int i = 0; i < n - 1; ++i)
+            if (endWord == wordList[i]){
+                swap(wordList[i], wordList[n - 1]);
+                break;
+            }
+        if (wordList[n - 1] != endWord) return ans;
+        queue<int> que;
+        memset(dis, 0x3f, sizeof(dis));
+        dis[0] = 0;
+        for (int i = 0; i < n; ++i)
+            if (ok(beginWord, wordList[i]))
+                dis[i + 1] = 1, que.push(i + 1), to[0].push_back(i + 1);
+        while (!que.empty()){
+            int h = que.front();
+            que.pop();
+            for (int i = 1; i <= n; ++i){
+                if (dis[i] < dis[h] + 1 || !ok(wordList[h - 1], wordList[i - 1]))
+                    continue;
+                if (dis[i] > dis[h] + 1) 
+                    dis[i] = dis[h] + 1, que.push(i);
+                to[h].push_back(i);
+            }
+        }
+        if (dis[n] == 0x3f3f3f3f)
+            return ans;
+        vis[0] = true, tot = 0, mindis = dis[n];
+        dfs(0, wordList);
+        return ans;
+    }
+};
+```
+
+## 方法二
+
+
 # 128
 一开始想到的是万能的排序，后来想到这种依附关系用并查集很好维护，进而推想出可以不用并查集而是用 Hash Table 直接扫区间。
 所以就是 $O(n)$ 了。这里偷了懒，用的是自带的 unordered_map。
@@ -1125,6 +1205,48 @@ public:
 因为有重复的数据，所以我们难以找出具体的旋转点，从而难以进行二分。
 但我们仍然可以缩小搜索范围，并且达到一个比较理想的时间复杂度。
 
+# 158
+建一个队列当作读入缓冲区就行了。注意一些边界条件。
+```cpp
+// Forward declaration of the read4 API.
+int read4(char *buf);
+
+class Solution {
+public:
+    /**
+     * @param buf Destination buffer
+     * @param n   Number of characters to read
+     * @return    The number of actual characters read
+     */
+    queue<char> q;
+    int read(char *buf, int n) {
+        int tot = 0;
+        while (!q.empty() && tot < n){
+            *buf = q.front();
+            q.pop();
+            ++tot, ++buf;
+        }
+        if (tot == n) return tot;
+        while (tot + 4 <= n){
+            int res = read4(buf);
+            tot += res;
+            if (res < 4) return tot;
+            buf += 4;
+        }
+        if (tot == n) return tot;
+        char tmp[4];
+        int res = read4(tmp);
+        for (int i = 0; i < res; ++i)
+            q.push(tmp[i]);
+        while (!q.empty() && tot < n){
+            *buf = q.front();
+            q.pop();
+            ++tot, ++buf;
+        }
+        return tot;
+    }
+};
+```
 
 # 164
 邓公的计算几何里面讲到过这个题。
@@ -1445,6 +1567,92 @@ class Solution(object):
         return ans
 ```
 
+# 265
+比较简单的 DP。设 $f(i, j)$ 为第 $i$ 间房子刷第 $j$ 种颜色时，前 $i$ 间房子总的费用。转移方程为：
+
+$$
+f(i, j) = \min_{k\neq j} \left\{f(i - 1, k) + costs[i][j]\right\}
+$$
+
+后面这个东西比较经典，是可以通过前缀后缀最小值优化掉的。所以最后的时间复杂度为 $O(nk)$。
+
+另外，本题数据貌似很小，只有 100 左右的级别。
+```cpp
+class Solution {
+public:
+    int f[105], g[105], h[105];
+    int minCostII(vector<vector<int>>& costs) {
+        int n = costs.size();
+        if (!n) return 0;
+        int k = costs[0].size();
+        for (int i = 1; i <= k; ++i)
+            f[i] = costs[0][i - 1];
+        g[0] = h[k + 1] = 0x3f3f3f3f;
+        for (int i = 1; i < n; ++i){
+            for (int j = 1; j <= k; ++j)
+                g[j] = min(g[j - 1], f[j]),
+                h[k - j + 1] = min(h[k - j + 2], f[k - j + 1]); // 构造前缀、后缀最小值
+            for (int j = 1; j <= k; ++j)
+                f[j] = min(g[j - 1], h[j + 1]) + costs[i][j - 1];
+        }
+        int ans = 0x3f3f3f3f;
+        for (int i = 1; i <= k; ++i)
+            ans = min(ans, f[i]);
+        return ans;
+    }
+};
+```
+
+# 269
+水拓扑排序。
+
+```cpp
+class Solution {
+public:
+    int du[30];
+    bool vis[30], mat[30][30];
+    string alienOrder(vector<string>& words) {
+        int n = words.size(), cnt = 0;
+        for (auto& s: words)
+            for (char c: s)
+                if (!vis[c - 'a'])
+                    vis[c - 'a'] = true, ++cnt;                 // 候选
+        for (int i = 0; i < n - 1; ++i){
+            int l1 = words[i].length(), l2 = words[i + 1].length();
+            int l = min(l1, l2);
+            bool flag = true;
+            for (int j = 0; j < l; ++j){
+                if (words[i][j] != words[i + 1][j]){
+                    int u = words[i][j] - 'a', v = words[i + 1][j] - 'a';
+                    if (!mat[u][v])
+                        mat[u][v] = true, ++du[v];
+                    flag = false;
+                    break;
+                }
+            }
+            if (flag && l1 > l2) return string("");         // 短的排在后面，非法
+        }
+        queue<int> q;
+        for (int i = 0; i < 26; ++i)
+            if (vis[i] && !du[i])
+                q.push(i);
+        string ans;
+        while (!q.empty()){
+            int h = q.front();
+            ans.push_back(h + 'a');
+            q.pop();
+            for (int i = 0; i < 26; ++i)
+                if (mat[h][i]){
+                    --du[i];
+                    if (!du[i]) q.push(i);
+                }
+        }
+        if (ans.length() < cnt) return string("");          // 拓扑排序失败
+        return ans;
+    }
+};
+```
+
 # 273
 按照十亿，百万，千和百分解即可。
 ```cpp
@@ -1472,6 +1680,9 @@ public:
     }
 };
 ```
+
+# 282
+暴搜显然是可以的
 
 # 295
 对顶堆
@@ -1513,8 +1724,37 @@ public:
 };
 ```
 
+# 296
+一维的情形很简单，只需要对位置排序后找中位数即可。高维的情况也是这样，只不过是分别对每一个维度的排序后找中位数。由曼哈顿距离是每一维拆开来加的可知这一方法是正确的。
+
+```cpp
+class Solution {
+public:
+    vector<int> x, y;
+    int minTotalDistance(vector<vector<int>>& grid) {
+        int n = grid.size();
+        if (!n) return 0;
+        int m = grid[0].size();
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < m; ++j)
+                if (grid[i][j])
+                    x.push_back(i), y.push_back(j);
+        sort(x.begin(), x.end());
+        sort(y.begin(), y.end());
+        int xx = x[x.size() >> 1], yy = y[y.size() >> 1];
+        int ans = 0;
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < m; ++j)
+                if (grid[i][j])
+                    ans += abs(i - xx) + abs(j - yy);
+        return ans;
+    }
+};
+```
+
 # 297
 比较简单的想法是把所有叶子节点表示出来，然后用前序遍历去记录。
+
 注意数据可能带符号。
 ```cpp
 class Codec {
@@ -1558,6 +1798,246 @@ public:
     // Decodes your encoded data to tree.
     TreeNode* deserialize(string data) {
         return dfs2( data, 0 ).first;
+    }
+};
+```
+
+# 301
+毫无技巧的暴力搜索可以通过，看来数据很小的样子。
+```cpp
+class Solution {
+public:
+    unordered_set<string> ans;
+    string tmp, ss;
+    int ll;
+    void dfs(int cur, int l_left, int r_left, int left){
+        if (cur == ll){
+            if (!l_left && !r_left && !left)
+                ans.insert(tmp);
+            return ;
+        }
+        if (ss[cur] == '('){
+            // 不选
+            if (l_left) dfs(cur + 1, l_left - 1, r_left, left);
+            // 选
+            tmp.push_back('('), 
+            dfs(cur + 1, l_left, r_left, left + 1), 
+            tmp.pop_back();
+        }else if (ss[cur] == ')'){
+            // 不选
+            if (r_left) dfs(cur + 1, l_left, r_left - 1, left);
+            // 选
+            if (left > 0)
+                tmp.push_back(')'), 
+                dfs(cur + 1, l_left, r_left, left - 1), 
+                tmp.pop_back();
+        }else 
+            tmp.push_back(ss[cur]), 
+            dfs(cur + 1, l_left, r_left, left), 
+            tmp.pop_back();
+    }
+    vector<string> removeInvalidParentheses(string s) {
+        // 粗去除
+        while (!s.empty() && s.back() == '(')
+            s.pop_back();
+        int l = s.length(), cur = 0;
+        while (cur < l && s[cur] == ')')
+            ++cur;
+        ss = s.substr(cur);
+        int left = 0, rt = 0;
+        for (char c: ss){
+            if (c == '(') ++left;
+            else if (c == ')'){
+                if (!left) ++rt;
+                else --left;
+            }
+        }
+        ll = ss.length();
+        dfs(0, left, rt, 0);
+        vector<string> real_ans;
+        for (auto& s: ans)
+            real_ans.push_back(s);
+        return real_ans;
+    }
+};
+```
+
+# 302
+迷之题。。。
+
+## 方法一
+遍历更新端点坐标。时间复杂度是朴素的 $O(mn)$。
+
+```cpp
+class Solution {
+public:
+    int minArea(vector<vector<char>>& image, int x, int y) {
+        int n = image.size(), m = image[0].size();
+        int xx1 = n, xx2 = -1, yy1 = m, yy2 = -1;
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < m; ++j)
+                if (image[i][j] == '1')
+                    xx1 = min(xx1, i), 
+                    xx2 = max(xx2, i), 
+                    yy1 = min(yy1, j), 
+                    yy2 = max(yy2, j);
+        return (yy2 - yy1 + 1) * (xx2 - xx1 + 1);
+    }
+};
+```
+
+## 方法二
+给出一开始的黑色像素点的目的在于实现快速的边界查找。简单来说就是可以二分出以该点为中心时，左、右、上、下的黑色区域的边界。这样就可以直接干掉一个维度，让时间复杂度变成 $O(m\log n+n\log m)$。
+
+由于四个方向都要判定所以代码较长。此外，也许是因为数据比较小，这么做的耗时反而比方法一长。
+
+```cpp
+class Solution {
+public:
+    int minArea(vector<vector<char>>& image, int x, int y) {
+        int n = image.size(), m = image[0].size();
+        int x1_l = 0, x1_r = x;                     // 上边界
+        while (x1_l < x1_r){
+            int x1_mid = (x1_l + x1_r) >> 1;
+            bool flag = false;
+            for (int i = 0; i < m; ++i) 
+                if (image[x1_mid][i] == '1'){
+                    flag = true;
+                    break;
+                }
+            if (flag) x1_r = x1_mid;
+            else x1_l = x1_mid + 1;
+        }
+        int x2_l = x, x2_r = n - 1;                 // 下边界
+        while (x2_l < x2_r){
+            int x2_mid = (x2_l + x2_r + 1) >> 1;
+            bool flag = false;
+            for (int i = 0; i < m; ++i) 
+                if (image[x2_mid][i] == '1'){
+                    flag = true;
+                    break;
+                }
+            if (flag) x2_l = x2_mid;
+            else x2_r = x2_mid - 1;
+        }
+        int y1_l = 0, y1_r = y;                     // 左边界
+        while (y1_l < y1_r){
+            int y1_mid = (y1_l + y1_r) >> 1;
+            bool flag = false;
+            for (int i = 0; i < n; ++i) 
+                if (image[i][y1_mid] == '1'){
+                    flag = true;
+                    break;
+                }
+            if (flag) y1_r = y1_mid;
+            else y1_l = y1_mid + 1;
+        }
+        int y2_l = y, y2_r = m - 1;                 // 右边界
+        while (y2_l < y2_r){
+            int y2_mid = (y2_l + y2_r + 1) >> 1;
+            bool flag = false;
+            for (int i = 0; i < n; ++i) 
+                if (image[i][y2_mid] == '1'){
+                    flag = true;
+                    break;
+                }
+            if (flag) y2_l = y2_mid;
+            else y2_r = y2_mid - 1;
+        }
+        return (x2_l - x1_l + 1) * (y2_l - y1_l + 1);
+    }
+};
+```
+
+# 305
+并查集。注意可能重复更新一个点。
+```cpp
+const int dx[] = {-1, 1, 0, 0}, dy[] = {0, 0, -1, 1};
+class Solution {
+    int fa[10005], tot;
+    int Find(int x){
+        return (x == fa[x] ? x: (fa[x] = Find(fa[x])));
+    }
+    void Union(int x, int y){
+        int u = Find(x), v = Find(y);
+        if (u == v) return ;
+        fa[u] = v, --tot;
+    }
+public:
+    vector<int> numIslands2(int m, int n, vector<vector<int>>& positions) {
+        int S = m * n;
+        tot = 0;
+        vector<int> ans;
+        for (auto& p: positions){
+            int pos = p[0] * n + p[1] + 1;
+            if (fa[pos]) {
+                ans.push_back(tot);
+                continue;
+            }
+            fa[pos] = pos;
+            ++tot;
+            for (int i = 0; i < 4; ++i){
+                int cx = p[0] + dx[i], cy = p[1] + dy[i];
+                if (cx < 0 || cy < 0 || cx >= m || cy >= n) 
+                    continue;
+                int poss = cx * n + cy + 1;
+                if (fa[poss]) Union(pos, poss);
+            }
+            ans.push_back(tot);
+        }
+        return ans;
+    }
+};
+```
+
+# 308
+只要是支持快速修改和查询的树状结构应该都可以。但貌似本题暴力更快？
+```cpp
+class NumMatrix {
+    vector<vector<int>>& mat;
+    vector<vector<int>> bit, tmp;
+    int n, m;
+    inline int lowbit(int x){
+        return x & (-x);
+    }
+    inline int query(int r, int c){
+        if (r < 0 || c < 0) return 0;
+        int res = tmp[r][c];
+        for (int i = r + 1; i > 0; i -= lowbit(i))
+            for (int j = c + 1; j > 0; j -= lowbit(j))
+                res += bit[i - 1][j - 1];
+        return res;
+    }
+public:
+    NumMatrix(vector<vector<int>>& matrix): mat(matrix) {
+        n = matrix.size();
+        if (!n) m = 0;
+        else m = matrix[0].size();
+        bit = vector<vector<int>>(n, vector<int>(m, 0));
+        tmp = mat;
+        for (int i = 0; i < n; ++i)
+            for (int j = 1; j < m; ++j) 
+                tmp[i][j] += tmp[i][j - 1];
+        for (int i = 1; i < n; ++i)
+            for (int j = 0; j < m; ++j) 
+                tmp[i][j] += tmp[i - 1][j];
+    }
+    
+    void update(int row, int col, int val) {
+        int delta = val - mat[row][col];
+        for (int i = row + 1; i <= n; i += lowbit(i))
+            for (int j = col + 1; j <= m; j += lowbit(j))
+                bit[i - 1][j - 1] += delta;
+        mat[row][col] = val;
+    }
+    
+    int sumRegion(int row1, int col1, int row2, int col2) {
+        int ans = 0;
+        ans += query(row2, col2);
+        ans -= query(row2, col1 - 1);
+        ans -= query(row1 - 1, col2);
+        ans += query(row1 - 1, col1 - 1);
+        return ans;
     }
 };
 ```
@@ -1641,6 +2121,90 @@ public:
 };
 ```
 
+# 321
+本题实在是一道非常优秀的题目，综合了几种不同的思想。
+
+首先，我们考虑所有数字都被用上的情形。这就是一个比较经典（但好像没有什么线性解法）的归并问题。
+
+然后考虑只用 $k$ 个数字。我们试着枚举 $t$，从第一个数组中抽取 $t$ 个数，第二个数组中抽取 $k-t$ 个数。
+
+那么只要正确地抽取出这 $t$ 和 $k-t$ 个数，就可以套用一开始所有数都被用上的情形了。这个问题也很经典：就是从原数中删去若干个数字，让得到的新数最大。显然，这可以用单调栈解决。
+
+如此，本题就可以成功做出。但是下面的代码时间和空间效率均不够好，所以可能需要进一步考察。
+```cpp
+class Solution {
+    vector<int> ans;
+    vector<int> tmp1, tmp2, tmp;
+    map<pair<int, int>, bool> mp;
+    bool cmp(int i, int j){
+        if (i == tmp1.size() || j == tmp2.size())
+            return j == tmp2.size();
+        if (mp.count(make_pair(i, j)))
+            return mp[make_pair(i, j)];
+        if (tmp1[i] > tmp2[j])
+            return (mp[make_pair(i, j)] = true);
+        else if (tmp1[i] < tmp2[j])
+            return (mp[make_pair(i, j)] = false);
+        else 
+            return (mp[make_pair(i, j)] = cmp(i + 1, j + 1));
+    }
+    void merge(){
+        mp.clear();
+        int lp = 0, rp = 0, pos = 0;
+        int n = tmp1.size(), m = tmp2.size();
+        while (lp < n && rp < m){
+            if (tmp1[lp] > tmp2[rp]) tmp[pos++] = tmp1[lp++];
+            else if (tmp1[lp] < tmp2[rp]) tmp[pos++] = tmp2[rp++];
+            else{
+                if (cmp(lp, rp)) tmp[pos++] = tmp1[lp++];
+                else tmp[pos++] = tmp2[rp++];
+            }
+        }
+        while (lp < n) tmp[pos++] = tmp1[lp++];
+        while (rp < m) tmp[pos++] = tmp2[rp++];
+    }
+public:
+    vector<int> maxNumber(vector<int>& nums1, vector<int>& nums2, int k) {
+        int n = nums1.size(), m = nums2.size();
+        ans = vector<int>(k, 0);
+        tmp = vector<int>(k, 0);
+        tmp1.reserve(min(k, n));
+        tmp2.reserve(min(k, m));
+        for (int t = max(0, k - m); t <= k && t <= n; ++t){
+            tmp1.clear();
+            tmp2.clear();
+            for (int i = 0, left = n - t; i < n; ++i){
+                while (left > 0 && !tmp1.empty() && nums1[i] > tmp1.back())
+                    --left, tmp1.pop_back();
+                tmp1.push_back(nums1[i]);
+            }
+            for (int i = tmp1.size() - t; i > 0; --i)
+                tmp1.pop_back();
+            for (int i = 0, left = m - k + t; i < m; ++i){
+                while (left > 0 && !tmp2.empty() && nums2[i] > tmp2.back())
+                    --left, tmp2.pop_back();
+                tmp2.push_back(nums2[i]);
+            }
+            for (int i = tmp2.size() - k + t; i > 0; --i)
+                tmp2.pop_back();
+            // cout << tmp1 << tmp2 << endl;
+            merge();
+            bool flag = false;
+            for (int i = 0; i < k; ++i)
+                if (tmp[i] != ans[i]){
+                    flag = tmp[i] > ans[i];
+                    break;
+                }
+            if (flag) {
+                for (int i = 0; i < k; ++i)
+                    ans[i] = tmp[i];
+            }
+        }
+        return ans;
+    }
+};
+```
+
 # 327
 multiset维护前缀和
 ```cpp
@@ -1689,6 +2253,35 @@ public:
             }
             ans = max(ans, f[x][y]);
         }
+        return ans;
+    }
+};
+```
+
+# 330
+这是一个很巧妙的贪心问题。。。
+
+一个很显然的想法是：如果当前数组覆盖不到 $x$，那么我们肯定要添加一个 $\le x$ 的数到数组中去。我们现在就考虑怎么把这个数填上，让它**产生的效果尽量好**。
+
+我们假设当前可以覆盖到的区间是 $[1, x)$，那么如果把 $y\le x$ 加到数组中，那么整个数组就可以多覆盖 $y, y+1, \cdots, y+x-1$ 这些数，换言之，覆盖范围就多了 $[y, y+x)$ 这一块。由于 $y \le x$，故两个区间可以合并为 $[1, y+x)$。那么显然，如果要加入的话当然是加入 $x$ 可以使得覆盖范围增加的最多。这就回答了我们之前的问题。
+
+这样算法的雏形就出来了：我们维护这样一个区间，记录最小的无法覆盖到的数 $x$。一开始设 $x=1$。然后从小到大用数组中的值去更新 $x$，如果当前的值大于 $x$ 就表明一定要新加入一个数，由上一段的结论可知加入 $x$ 是最好的。如此反复，直到全部覆盖为止。
+
+时间复杂度为 $O(m + \log n)$，$m$ 为数组长度，$n$ 为要求覆盖的范围。
+
+```cpp
+class Solution {
+public:
+    int minPatches(vector<int>& nums, int n) {
+        unsigned int x = 1, ans = 0;
+        for (int y: nums){
+            while (y > x && x <= n)
+                x <<= 1, ++ans;
+            if (x > n) break;
+            x += y;
+        }
+        while (x <= n)
+            x <<= 1, ++ans;
         return ans;
     }
 };
@@ -1776,6 +2369,44 @@ public:
                         ans.push_back(vector<int>{i, mp[tmp]});
                 }
             }
+        }
+        return ans;
+    }
+};
+```
+
+# 340
+尺取法
+```cpp
+class Solution {
+    int cnt[130], l, tot, cur;
+    inline void upd(string& s, int k){
+        while (tot < k && cur < l){
+            if (!cnt[s[cur]])
+                ++tot;
+            ++cnt[s[cur]];
+            ++cur;
+        }
+        while (cur < l){
+            if (!cnt[s[cur]])
+                break;
+            ++cnt[s[cur]];
+            ++cur;
+        }
+    }
+public:
+    int lengthOfLongestSubstringKDistinct(string s, int k) {
+        l = s.length();
+        tot = 0, cur = 0;
+        upd(s, k);
+        if (cur == l) return l;
+        int ans = cur;
+        for (int i = 1; i < l; ++i){
+            if (cnt[s[i - 1]] == 1)
+                --tot;
+            --cnt[s[i - 1]];
+            upd(s, k);
+            ans = max(ans, cur - i);
         }
         return ans;
     }
@@ -1871,6 +2502,42 @@ public:
 
 ## 方法二
 
+
+# 358
+显然要先放个数多的字母。然后用堆维护字母个数，再用一个标记数组维护间隔即可。
+
+但是字母就 26 个，所以可以不用堆，直接线性查找也行。
+
+```cpp
+class Solution {
+public:
+    int cnt[30];
+    bool vis[30];
+    string rearrangeString(string s, int k) {
+        if (!k) return s;
+        int l = s.length(), maxi = 0;
+        for (int i = 0; i < l; ++i)
+            ++cnt[s[i] - 'a'];
+        for (int i = 0; i < 26; ++i)    
+            maxi = max(maxi, cnt[i]);
+        if (maxi > (l - 1) / k + 1)
+            return string("");
+        string ans;
+        for (int i = 0; i < l; ++i){
+            int maxii = 0, p = -1;
+            for (int j = 0; j < 26; ++j)
+                if (!vis[j] && cnt[j] > maxii)
+                    maxii = cnt[j], p = j;
+            if (p == -1) return string("");
+            vis[p] = true, ans.push_back(p + 'a');
+            --cnt[p];
+            if (i >= k - 1 && vis[ans[i - k + 1] - 'a'])
+                vis[ans[i - k + 1] - 'a'] = false;
+        }
+        return ans;
+    }
+};
+```
 
 # 363
 还是这种二维化一维的题目，先枚举要选择的两列，然后对行扫描，用一个 set 保存前面遇到的前缀和，每一次查询当前和减掉 $K$ 的 lower_bound 就行了。
@@ -1983,6 +2650,33 @@ public:
 
 ## 方法二
 
+# 403
+设 $f(i, j)$ 为跳到第 $i$ 块石头上时，这一步距离为 $j$ 是否是可行的。则容易构造出 $O(N^2)$ 的转移，$N$ 为石头个数。
+
+```cpp
+class Solution {
+    bool f[1105][1105];
+public:
+    bool canCross(vector<int>& stones) {
+        int n = stones.size();
+        if (stones[1] != 1)
+            return false;
+        f[1][1] = true;
+        for (int i = 2; i < n; ++i){
+            for (int j = i - 1; j >= 1; --j){
+                int d = stones[i] - stones[j];
+                if (d > i) break;
+                if (d > 0) f[i][d] = f[i][d] || f[j][d - 1];
+                f[i][d] = f[i][d] || f[j][d] || f[j][d + 1];
+            }
+        }
+        for (int i = 0; i < n; ++i)
+            if (f[n - 1][i]) return true;
+        return false;
+    }
+};
+```
+
 # 410
 经典二分。注意数据范围大。
 ```cpp
@@ -2007,6 +2701,212 @@ public:
             else r = mid;
         }
         return l;
+    }
+};
+```
+
+# 428
+集 431 和 297 之大成。
+```cpp
+class Codec {
+    void dfs( TreeNode* root, string& ans ){
+        if (root == NULL) {
+            ans.push_back(' ');
+            ans.push_back('#');
+            return ;
+        }
+        ans.push_back(' ');
+        ans += to_string( root->val );
+        dfs( root->left, ans );
+        dfs( root->right, ans );
+    }
+    // Encodes a tree to a single string.
+    string serialize2(TreeNode* root) {
+        string ans("");
+        dfs( root, ans );
+        return ans;
+    }
+    pair<TreeNode*, int> dfs2( string& data, int l ){
+        ++l;
+        if ( data[l] == '#' ) return make_pair( ( TreeNode* ) NULL, l + 1 );
+        int x = 0, flag = 1;
+        if ( data[l] == '-' ) flag = -1, ++l;
+        while ( data[l] != ' ' )
+            x = x * 10 + data[l] - '0', ++l;
+        x = x * flag;
+        TreeNode* root = new TreeNode(x);
+        pair<TreeNode*, int> res = dfs2 ( data, l );
+        root->left = res.first, l = res.second;
+        res = dfs2 ( data, l );
+        root->right = res.first, l = res.second;
+        return make_pair( root, l );
+    }
+    // Decodes your encoded data to tree.
+    TreeNode* deserialize2(string data) {
+        return dfs2( data, 0 ).first;
+    }
+    // Encodes an n-ary tree to a binary tree.
+    TreeNode* encode(Node* root) {
+        if (root == nullptr) return nullptr;
+        TreeNode *cur = new TreeNode(root->val), *tmp = cur;
+        int n = root->children.size();
+        if (!n) return cur;
+        cur->left = encode(root->children[0]), cur = cur->left;
+        for (int i = 1; i < n; ++i)
+            cur->right = encode(root->children[i]), cur = cur->right;
+        return tmp;
+    }
+    // Decodes your binary tree to an n-ary tree.
+    Node* decode(TreeNode* root) {
+        if (root == nullptr) return nullptr;
+        Node *cur = new Node(root->val);
+        root = root->left;
+        while (root != nullptr)
+            cur->children.push_back(decode(root)), 
+            root = root->right;
+        return cur;
+    }
+public:
+
+    // Encodes a tree to a single string.
+    string serialize(Node* root) {
+        return serialize2(encode(root));
+    }
+
+    // Decodes your encoded data to tree.
+    Node* deserialize(string data) {
+        return decode(deserialize2(data));
+    }
+};
+```
+
+# 431
+左儿子右兄弟。
+
+代码见 428。
+
+# 432
+双向链表保存权值（一开始没想到，我爬），然后每一个节点开一个 set 保存键。
+
+是 $O(1)$ 吗？就当是吧。
+
+```cpp
+class AllOne {
+    unordered_map<int, unordered_set<string>> val_to_key;
+    unordered_map<string, int> key_to_val;
+    unordered_map<int, int> left, right;
+public:
+    /** Initialize your data structure here. */
+    AllOne() {
+        left[0] = right[0];
+    }
+    
+    /** Inserts a new key <Key> with value 1. Or increments an existing key by 1. */
+    void inc(string key) {
+        if (key_to_val.count(key)){
+            int v = key_to_val[key];
+            ++key_to_val[key];
+            val_to_key[v + 1].insert(key);
+            if (val_to_key[v + 1].size() == 1){
+                int nxt = right[v];
+                left[nxt] = v + 1, right[v + 1] = nxt;
+                left[v + 1] = v, right[v] = v + 1;
+            }
+            val_to_key[v].erase(key);
+            if (val_to_key[v].empty()){
+                int prev = left[v];
+                left[v + 1] = prev, right[prev] = v + 1;
+            }
+        }else {
+            key_to_val[key] = 1;
+            val_to_key[1].insert(key);
+            if (val_to_key[1].size() == 1){
+                int nxt = right[0];
+                left[nxt] = 1, right[1] = nxt;
+                left[1] = 0, right[0] = 1;
+            }
+        }
+    }
+    
+    /** Decrements an existing key by 1. If Key's value is 1, remove it from the data structure. */
+    void dec(string key) {
+        if (!key_to_val.count(key)) return ;
+        int v = key_to_val[key];
+        if (v > 1){
+            --key_to_val[key];
+            val_to_key[v - 1].insert(key);
+            if (val_to_key[v - 1].size() == 1){
+                int prev = left[v];
+                left[v - 1] = prev, right[v - 1] = v;
+                left[v] = v - 1, right[prev] = v - 1;
+            }
+            val_to_key[v].erase(key);
+            if (val_to_key[v].empty()){
+                int nxt = right[v];
+                left[nxt] = v - 1, right[v - 1] = nxt;
+            }
+        }else {
+            key_to_val.erase(key);
+            val_to_key[1].erase(key);
+            if (val_to_key[1].empty()){
+                int nxt = right[1];
+                left[nxt] = 0, right[0] = nxt;
+            }
+        }
+    }
+    
+    /** Returns one of the keys with maximal value. */
+    string getMinKey() {
+        int mini = right[0];
+        if (!mini) return string("");
+        for (auto& s: val_to_key[mini])
+            return s;
+        return string("");
+    }
+    
+    /** Returns one of the keys with Minimal value. */
+    string getMaxKey() {
+        int maxi = left[0];
+        if (!maxi) return string("");
+        for (auto& s: val_to_key[maxi])
+            return s;
+        return string("");
+    }
+};
+```
+
+# 446
+显然以第 $i$ 个数为末尾的等差数列的公差至多只有 $i-1$ 种，因此可以直接每一个位置开一个 unordered_map 暴力转移。
+
+注意这里因为等差数列长度必须 $> 2$，因此我专门用了另一个 map 来记录长度为 2 的等差数列，方便转移。
+
+事实上没必要这么做，可以最后把这一部分的贡献 $\binom{n}{2}$ 直接减掉。
+
+```cpp
+class Solution {
+    unordered_map<int, int> mp[1005], mp2[1005]; 
+public:
+    int numberOfArithmeticSlices(vector<int>& A) {
+        int n = A.size(), ans = 0;
+        for (int i = 0; i < n; ++i){
+            for (int j = 0; j < i; ++j){
+                if (1ll * A[i] - A[j] > INT_MAX || 1ll * A[i] - A[j] < INT_MIN)
+                    continue;
+                if (!mp2[i].count(A[i] - A[j]))
+                    mp2[i][A[i] - A[j]] = 0;
+                if (!mp[i].count(A[i] - A[j]))
+                    mp[i][A[i] - A[j]] = 0;
+                ++mp2[i][A[i] - A[j]];
+
+                if (mp2[j].count(A[i] - A[j]))
+                    mp[i][A[i] - A[j]] += mp2[j][A[i] - A[j]]; 
+                if (mp[j].count(A[i] - A[j]))
+                    mp[i][A[i] - A[j]] += mp[j][A[i] - A[j]]; 
+            }
+            for (auto& p: mp[i])
+                ans += p.second;
+        }
+        return ans;
     }
 };
 ```
@@ -2082,6 +2982,256 @@ public:
 };
 ```
 
+# 471
+区间 DP。压缩时有三种选择：要么不动，要么是从某处断开、左右两个串的压缩连起来，要么有循环节、直接压缩。
+
+第三种选择可以用 KMP 加速。
+
+稍微注意一下写法即可。
+
+```cpp
+class Solution {
+public:
+    int f[166][166], ans[166][166];
+    bool zip[166][166];
+    int nxt[166][166];
+    string aans;
+    void build(int l, int r, string& s){
+        if (zip[l][r]){
+            int ll = r - l + 1;
+            int len = ll - 1 - nxt[l][ll - 1];
+            aans += to_string(ll / len);
+            aans.push_back('[');
+            build(l, l + len - 1, s);
+            aans.push_back(']');
+            return ;
+        }
+        if (ans[l][r] == -1){
+            for (int i = l; i <= r; ++i)
+                aans.push_back(s[i]);
+            return ;
+        }
+        build(l, ans[l][r], s);
+        build(ans[l][r] + 1, r, s);
+    }
+    inline int calc_len(int x){
+        int res = 0;
+        while (x > 0)
+            ++res, x /= 10;
+        return res;
+    }
+    string encode(string s) {
+        int l = s.length();
+        for (int i = 0; i < l; ++i){
+            nxt[i][0] = -1;
+            for (int t = -1, j = 1; j < l - i; ++j){
+                while (t > -1 && s[i + t + 1] != s[i + j])
+                    t = nxt[i][t];
+                if (s[i + t + 1] == s[i + j])
+                    nxt[i][j] = ++t;
+                else nxt[i][j] = -1;
+            }
+        }
+        // zip 为 true 时 ans 为 -1
+        // 为 false 时 ans 为 -1 表示不改动
+        // 长度 <= 4 不必改动
+        for (int t = 1; t <= 4; ++t)
+            for (int i = 0; i + t <= l; ++i)
+                zip[i][i + t - 1] = false, 
+                ans[i][i + t - 1] = -1, 
+                f[i][i + t - 1] = t;
+        for (int t = 5; t <= l; ++t){
+            for (int i = 0; i + t <= l; ++i){
+                int& tg = f[i][i + t - 1];
+                zip[i][i + t - 1] = false, 
+                ans[i][i + t - 1] = -1, 
+                tg = t;
+                // 尝试压缩
+                int len = t - 1 - nxt[i][t - 1];
+                if (len < t && t % len == 0){
+                    zip[i][i + t - 1] = true, 
+                    tg = calc_len(t / len) + 2 + f[i][i + len - 1];
+                }
+                // 尝试组合
+                for (int j = i; j < i + t - 1; ++j){
+                    int targ = f[i][j] + f[j + 1][i + t - 1];
+                    if (targ < tg)
+                        tg = targ, 
+                        ans[i][i + t - 1] = j, 
+                        zip[i][i + t - 1] = false;
+                } 
+            }
+        }
+        build(0, l - 1, s);
+        return aans;
+    }
+};
+```
+
+# 472
+暴力 DP。事先要把字符串按长度排序。
+
+```py
+class Solution:
+    def findAllConcatenatedWordsInADict(self, words: List[str]) -> List[str]:
+        l = len(words)
+        lis = list(range(l))
+        len_lis = [len(s) for s in words]
+        lis.sort(key=lambda x: len_lis[x])
+
+        ans = []
+        st, st_l = set(), set()
+        rg = range(1, l) if words[lis[0]] == "" else range(l)
+        for i in rg:
+            ll = len_lis[lis[i]]
+            f = [False] * (ll + 1)
+            f[0] = True
+            for j in range(ll):
+                for k in st_l:
+                    if j + 1 >= k and f[j + 1 - k] and words[lis[i]][j + 1 - k: j + 1] in st:
+                        f[j + 1] = True
+                        break
+            if f[ll]:
+                ans.append(words[lis[i]])
+
+            st.add(words[lis[i]])
+            st_l.add(ll)
+        
+        return ans
+```
+
+# 480
+讲道理这题用 multiset 比堆方便多了。实在不行写一个可删堆也比延迟删除强。
+
+但总是要追求更快的速度，所以下面的代码还是用的滑动窗口+对顶堆的方法。
+
+这里的对顶堆平衡的手法还是比较原始，用一个 pair 保存数和数的位置，再用一个 bool 数组指示对应下标的数是在堆的上面还是下面。如果数都是不重复的话其实不需要这个数组，这里是没有办法。延迟删除用的是两个指示变量，代表上堆和下堆的延迟删除个数。
+```cpp
+class Solution {
+    priority_queue<pair<int, int> > pq_d;
+    priority_queue<pair<int, int>, vector<pair<int, int>>, greater<pair<int, int>>> pq_u;
+    int lazy_d, lazy_u, K;
+    bool at[10005];
+    void clean(int pos){
+        while (!pq_d.empty() && pq_d.top().second + K <= pos)
+            pq_d.pop(), --lazy_d;
+        while (!pq_u.empty() && pq_u.top().second + K <= pos)
+            pq_u.pop(), --lazy_u;
+    }
+    void maintain(int x, int pos){
+        clean(pos);
+        int offset = K & 1;
+        if (x <= pq_d.top().first) pq_d.push(make_pair(x, pos));
+        else pq_u.push(make_pair(x, pos)), at[pos] = true;
+        for (; ; ){
+            int siz1 = pq_d.size() - lazy_d;
+            int siz2 = pq_u.size() - lazy_u + offset;
+            if (siz1 > siz2){
+                at[pq_d.top().second] = true, 
+                pq_u.push(pq_d.top()), pq_d.pop();          // 上移
+            }else if (siz1 < siz2){
+                at[pq_u.top().second] = false, 
+                pq_d.push(pq_u.top()), pq_u.pop();          // 下移
+            }else break;
+            clean(pos);
+        }
+    }
+    inline void pop(int x, int pos){
+        (at[pos] ? ++lazy_u: ++lazy_d);
+    }
+public:
+    vector<double> medianSlidingWindow(vector<int>& nums, int k) {
+        vector<double> ans;
+        if (k == 1){
+            for (int x: nums)
+                ans.push_back(x);
+            return ans;
+        }
+        int n = nums.size();
+        lazy_d = 0, lazy_u = 0, K = k;
+        for (int i = 0; i < k; ++i)
+            pq_d.push(make_pair(nums[i], i));
+        for (int i = (k >> 1); i > 0; --i)
+            pq_u.push(pq_d.top()), 
+            at[pq_d.top().second] = true,
+            pq_d.pop(); 
+        for (int i = k; i < n; ++i){
+            if (k & 1) ans.push_back(pq_d.top().first);
+            else ans.push_back(0.5 * pq_d.top().first + 0.5 * pq_u.top().first);
+            pop(nums[i - k], i - k);
+            maintain(nums[i], i);
+        }
+        if (k & 1) ans.push_back(pq_d.top().first);
+        else ans.push_back(0.5 * pq_d.top().first + 0.5 * pq_u.top().first);
+        return ans;
+    }
+};
+```
+
+看了官方题解后发现这些想法都可以改的好一点，可以直接用一个变量指示上下两个堆的不平衡情况，然后依照这个变量进行调整。
+
+显然，一次弹出和加入至多对指示变量改变 2 的大小，因此很容易一次调整完成。
+
+```cpp
+class Solution {
+    priority_queue<int> pq_d;                           // K 是奇数时，认为下堆多一个数
+    priority_queue<int, vector<int>, greater<int>> pq_u;
+    unordered_map<int, int> mp;
+    int balance, K;                 // balance：下堆相较上堆的偏差程度
+    void clean(){
+        while (!pq_d.empty() && mp[pq_d.top()])
+            --mp[pq_d.top()], pq_d.pop();
+        while (!pq_u.empty() && mp[pq_u.top()])
+            --mp[pq_u.top()], pq_u.pop();
+    }
+    void maintain(int x){
+        if (x <= pq_d.top()) pq_d.push(x), ++balance;
+        else pq_u.push(x), --balance;
+        clean();
+        if (!balance) return ;
+        if (balance > 0){
+            pq_u.push(pq_d.top()), pq_d.pop();          // 上移
+        }else {
+            pq_d.push(pq_u.top()), pq_u.pop();          // 下移
+        }
+        balance = 0;
+        clean();
+    }
+    inline void pop(int x){
+        if (x == pq_d.top()) pq_d.pop(), --balance;
+        else {
+            ++mp[x];
+            balance += (x < pq_d.top() ? -1: 1);
+        }
+    }
+public:
+    vector<double> medianSlidingWindow(vector<int>& nums, int k) {
+        vector<double> ans;
+        if (k == 1){
+            for (int x: nums)
+                ans.push_back(x);
+            return ans;
+        }
+        int n = nums.size();
+        balance = 0, K = k;
+        // 初始化过程
+        for (int i = 0; i < k; ++i)
+            pq_d.push(nums[i]);
+        for (int i = (k >> 1); i > 0; --i)
+            pq_u.push(pq_d.top()), pq_d.pop(); 
+        for (int i = k; i < n; ++i){
+            if (k & 1) ans.push_back(pq_d.top());
+            else ans.push_back(0.5 * pq_d.top() + 0.5 * pq_u.top());
+            pop(nums[i - k]);
+            maintain(nums[i]);
+        }
+        if (k & 1) ans.push_back(pq_d.top());
+        else ans.push_back(0.5 * pq_d.top() + 0.5 * pq_u.top());
+        return ans;
+    }
+};
+```
+
 # 483
 外部枚举该进制可能的位数，内部二分出该进制。
 ```py
@@ -2105,6 +3255,41 @@ class Solution:
                 return str(ll)
         
         return str(n - 1)
+```
+
+# 489
+DFS。
+```cpp
+const int dx[] = {-1, 0, 1, 0}, dy[] = {0, -1, 0, 1};
+class Solution {
+    set<pair<int, int>> st;
+    inline void stepback(Robot& robot){
+        robot.turnLeft(), robot.turnLeft(), robot.move(), 
+        robot.turnLeft(), robot.turnLeft();
+    }
+    void dfs(Robot& robot, int x, int y, int d){
+        // 认为：进入和退出时的朝向一致
+
+        robot.clean();          // 先打扫自己这里
+        for (int i = 0; i < 4; ++i) {
+            int dd = (i + d) % 4;
+            int cx = x + dx[dd], cy = y + dy[dd];
+            if (!st.count(make_pair(cx, cy))) {
+                bool res = robot.move();
+                if (res){
+                    st.insert(make_pair(cx, cy));
+                    dfs(robot, cx, cy, dd);
+                    stepback(robot);
+                }
+            }
+            robot.turnLeft();
+        }
+    }
+public:
+    void cleanRoom(Robot& robot) {
+        dfs(robot, 0, 0, 0);
+    }
+};
 ```
 
 # 493
@@ -2340,6 +3525,169 @@ public:
 };
 ```
 
+# 568
+比较简单的 DP。但是似乎这个矩阵比较稀疏，所以要进一步优化的话，最好事先转换成为邻接表的形式再做。
+
+时间复杂度为 $O(K(V + E))$。
+```cpp
+class Solution {
+public:
+    int f[105][105];
+    vector<int> to[105];
+    int maxVacationDays(vector<vector<int>>& flights, vector<vector<int>>& days) {
+        int n = flights.size(), k = days[0].size();
+        memset(f, -1, sizeof(f));
+        f[0][0] = 0;
+        for (int i = 0; i < n; ++i){
+            to[i].push_back(i);
+            for (int j = 0; j < n; ++j)
+                if (flights[i][j])  
+                    to[i].push_back(j);
+        }
+        for (int i = 1; i <= k; ++i)
+            for (int j = 0; j < n; ++j){
+                int t = f[i - 1][j];
+                if (t < 0) continue;
+                for (int v: to[j])
+                    f[i][v] = max(f[i][v], t + days[v][i - 1]);
+            }
+        int ans = 0;
+        for (int i = 0; i < n; ++i)
+            ans = max(ans, f[k][i]);
+        return ans;
+    }
+};
+```
+
+# 588
+用嵌套字典可以实现。用字典表示文件夹，字符串表示文件。
+```py
+class FileSystem:
+
+    def __init__(self):
+        self.root = dict()
+
+    def ls(self, path: str):
+        if path == '/':
+            lis = list(self.root.keys())
+            lis.sort()
+            return lis
+        else:
+            cur, l = 1, len(path)
+            node = self.root
+            while True:
+                lst = cur
+                while cur < l and path[cur] != '/':
+                    cur += 1
+                name = path[lst: cur]
+                node = node[name]
+                if cur == l:
+                    # 是文件夹或者文件
+                    if type(node) == str:
+                        return [name]
+                    else:
+                        lis = list(node.keys())
+                        lis.sort()
+                        return lis
+                else:
+                    cur += 1
+            return []           # 占位符
+
+    def mkdir(self, path: str) -> None:
+        lis = path.lstrip("/").split("/")
+        cur = self.root
+        for name in lis:
+            if name not in cur:
+                cur[name] = dict()
+            cur = cur[name]
+
+    def addContentToFile(self, filePath: str, content: str) -> None:
+        lis = filePath.lstrip("/").split("/")
+        cur = self.root
+        for name in lis[: -1]:
+            cur = cur[name]
+        name = lis[-1]
+        if name not in cur:
+            cur[name] = content
+        else:
+            cur[name] += content
+
+    def readContentFromFile(self, filePath: str) -> str:
+        lis = filePath.lstrip("/").split("/")
+        cur = self.root
+        for name in lis:
+            cur = cur[name]
+        return cur
+```
+
+# 591
+parser。
+
+细节还好，分情况讨论判断即可。
+```cpp
+class Solution {
+    stack<string> st;
+public:
+    bool isValid(string code) {
+        string cdata_l = "[CDATA[", cdata_r = "]]>";
+        int l = code.length();
+        for (int i = 0; i < l; ){
+            if (code[i] == '<'){
+                // 处理标签（可能）
+                if (i == l - 1) return false;
+                int nxt = code[i + 1];
+                if (nxt == '!'){
+                    // CDATA
+                    if (st.empty()) return false;
+                    // 确认了在标签内部
+                    bool flag1 = true;
+                    for (int j = 0; j < 7; ++j)
+                        if (i + 2 + j == l || cdata_l[j] != code[i + 2 + j])
+                            return false;
+                    // 确认了左边是 CDATA
+                    int pos = code.find(cdata_r, i + 9);
+                    if (pos < 0) return false;
+                    // 确认了有结尾
+                    i = pos + 3;
+                }else if (nxt == '/'){
+                    // 闭合
+                    int tmp = i + 2; 
+                    while (tmp < l && code[tmp] != '>'){
+                        if (!isupper(code[tmp])) return false;
+                        ++tmp;
+                    }
+                    if (tmp == l || tmp - i - 2 < 1 || tmp - i - 2 > 9) return false;
+                    // 确认了有结尾
+                    if (st.empty() || code.substr(i + 2, tmp - i - 2) != st.top())
+                        return false;
+                    st.pop();
+                    // 处理完了一对标签
+                    i = tmp + 1;
+                }else {
+                    // 普通标签
+                    int tmp = i + 1;
+                    while (tmp < l && code[tmp] != '>'){
+                        if (!isupper(code[tmp])) return false;
+                        ++tmp;
+                    }
+                    if (tmp == l || tmp - i - 1 < 1 || tmp - i - 1 > 9) return false;
+                    if (st.empty() && i != 0) return false;
+                    // 仍然被包围，加入到目前栈中
+                    st.push(code.substr(i + 1, tmp - i - 1));
+                    i = tmp + 1;
+                }
+            }else {
+                // 处理一般的字符
+                if (st.empty()) return false;
+                ++i;
+            }
+        }
+        if (!st.empty()) return false;
+        return true;
+    }
+};
+```
+
 # 629
 设 $f(i, j)$ 表示前 $i$ 个数构成 $j$ 个逆序对的方案数目。如果算出来了前 $i-1$ 的答案，考虑把元素 $i$ 插入到原来的序列里，插得位置不同会产生不同的逆序对数目。增加的逆序对数在 $[0, i-1]$ 内，据此可以写出状态转移方程：
 $$
@@ -2376,6 +3724,54 @@ public:
             }
         }
         return vec[n][k];
+    }
+};
+```
+
+# 630
+
+## 方法一
+对 $d$ 排序然后暴力背包，显然会挂掉。
+
+## 方法二
+对，本题又是那种奇奇怪怪的区间贪心题。。。
+
+我们还是先对 $d$ 排序，然后考虑维护一个**合法**的**最优**答案集合。所谓合法也就是所有课都能够在 DDL 之前上完。所谓最优也就是方案最优，课最多的情况下可容错空间最大。
+
+然后我们考虑怎么更新这个答案集合。我们遍历的顺序是按照 $d$ 升序来的，因为越早结束的当然要越早处理。
+
+设当前答案集合有 $k$ 个元素，集合中的总所需时间为 $T$。当前元素为 $i$，所需时间为 $t$，DDL 是 $d$。如果 $i+T\le d$，把当前元素并入答案。假设这么做不是最优的，那么表明：之前有某个方案至少可以选同样多的课，并且做的更好。如果这个理想中的方案包含 $i$，那么把 $i$ 去掉会比当前答案好；如果不包含，那么选课数更多，也比当前答案好。与当前答案最优矛盾。
+
+否则，选出答案集合中素耗时最长的元素，如果它的耗时比 $t$ 长，那么把这个元素替换成为当前元素。同样可以利用反证法证明这一选择的正确性。
+
+应该要说，这种归纳的最优性实在是非常的巧妙。
+
+```cpp
+class Solution {
+    int id[10005];
+    priority_queue<int> pq;
+public:
+    int scheduleCourse(vector<vector<int>>& courses) {
+        int n = courses.size(), maxd = 0;
+        for (int i = 0; i < n; ++i)
+            id[i] = i, maxd = max(maxd, courses[i][1]);
+        sort(id, id + n, [&](int i, int j){
+            if (courses[i][1] == courses[j][1]) return courses[i][0] < courses[j][0];
+            return courses[i][1] < courses[j][1];
+        });
+        
+        int tot = courses[id[0]][0];
+        pq.push(courses[id[0]][0]);
+        for (int i = 1; i < n; ++i){
+            int ddl = courses[id[i]][1], lst = courses[id[i]][0];
+            if (lst + tot <= ddl)
+                pq.push(lst), tot += lst;
+            else if (!pq.empty() && pq.top() > lst){
+                tot -= pq.top(), pq.pop();
+                pq.push(lst), tot += lst;
+            }
+        }
+        return pq.size();
     }
 };
 ```
@@ -2475,6 +3871,175 @@ public:
             f2 = f1, f1 = f0;
         }
         return f1;
+    }
+};
+```
+
+# 642
+理论上来说也可以用 Trie，但数据比较小就直接暴力了。
+```cpp
+class AutocompleteSystem {
+    int ids[205], len;
+    bool is_first;
+    string ss;
+    vector<string>& sentences_ref;
+    vector<int>& times_ref;
+public:
+    AutocompleteSystem(vector<string>& sentences, vector<int>& times) :
+        sentences_ref(sentences), times_ref(times){
+        is_first = true;
+    }
+    
+    vector<string> input(char c) {
+        vector<string> ans;
+        if (is_first){
+            if (c == '#') return ans;
+            is_first = false;
+            len = 0;
+            ss.push_back(c);
+            int n = sentences_ref.size();
+            for (int i = 0; i < n; ++i){
+                if (sentences_ref[i][0] != c) continue;
+                ids[len++] = i;
+            }
+            sort(ids, ids + len, [&](int i, int j){
+                if (times_ref[i] == times_ref[j]) return sentences_ref[i] < sentences_ref[j];
+                return times_ref[i] > times_ref[j];
+            });
+            for (int i = 0; i < min(3, len); ++i)
+                ans.push_back(sentences_ref[ids[i]]);
+            return ans;
+        }
+        if (c == '#'){
+            int n = sentences_ref.size();
+            bool flag = false;
+            for (int i = 0; i < n; ++i)
+                if (sentences_ref[i] == ss){
+                    ++times_ref[i];
+                    flag = true;
+                    break;
+                }
+            if (!flag){
+                sentences_ref.push_back(ss);
+                times_ref.push_back(1);
+            }
+            ss.clear();
+            is_first = true;
+            return ans;
+        }
+        int newlen = 0, ll = ss.length();
+        ss.push_back(c);
+        for (int i = 0; i < len; ++i)
+            if (sentences_ref[ids[i]][ll] == c)
+                ids[newlen++] = ids[i];
+        len = newlen;
+        for (int i = 0; i < min(3, len); ++i)
+            ans.push_back(sentences_ref[ids[i]]);
+        return ans;
+    }
+};
+```
+
+# 644
+二分。
+```cpp
+class Solution {
+public:
+    int sum[10005];
+    double findMaxAverage(vector<int>& nums, int k) {
+        double l = -10000, r = 10000;
+        int n = nums.size();
+        for (int i = 1; i <= n; ++i)
+            sum[i] = sum[i - 1] + nums[i - 1];
+        while (r - l > 1e-6){
+            double mid = (l + r) * 0.5;
+            double mini = 1e9;
+            bool flag = false;
+            for (int i = k; i <= n; ++i){
+                mini = min(mini, sum[i - k] - mid * (i - k));
+                if (sum[i] - mid * i >= mini){
+                    flag = true; 
+                    break;
+                }
+            }
+            if (flag) l = mid;
+            else r = mid;
+        } 
+        return l;
+    }
+};
+```
+
+# 656
+
+## 方法一
+正向递推，然后现在想要计算数组 `mini`，其中 $mini[i]$ 表示从 $i$ 出发，**在最短路上的边中**，最小的终点（这里的终点指的是边的终点）。通过 `mini` 可以找出答案路径。
+
+计算方法是从终点（这里指数组的最后一个点）沿着最短路边反向 BFS，然后递推计算。
+
+```cpp
+class Solution {
+public:
+    int f[1005], mini[1005];
+    bool vis[1005];
+    vector<int> cheapestJump(vector<int>& A, int B) {
+        int n = A.size();
+        memset(f, 0x3f, sizeof(f));
+        vector<int> ans;
+        if (A[0] < 0 || A[n - 1] < 0) return ans;
+        f[0] = A[0];
+        for (int i = 0; i < n - 1; ++i)
+            for (int j = min(B, n - 1 - i); j >= 1; --j)
+                if (A[i + j] >= 0)
+                    f[i + j] = min(f[i + j], f[i] + A[i + j]);
+        if (f[n - 1] == 0x3f3f3f3f) return ans;
+        memset(mini, 0x3f, sizeof(mini));
+        queue<int> q;
+        vis[n - 1] = true, q.push(n - 1);
+        while (!q.empty()){
+            int h = q.front();
+            q.pop();
+            for (int j = max(0, h - B); j < h; ++j)
+                if (A[j] >= 0 && f[h] == f[j] + A[h]){
+                    mini[j] = min(mini[j], h);
+                    if (!vis[j]) vis[j] = true, q.push(j);
+                }
+        }
+        ans.push_back(0);
+        for (int i = 0; i != n - 1; i = mini[i])
+            ans.push_back(mini[i]);
+        ans.push_back(n - 1);
+        return ans;
+    }
+};
+```
+
+## 方法二
+方法一由于使用了正向递推所以计算 `mini` 数组的时候需要花费额外的时间。实际上由于本题的起点和终点具有对称性，即从起点到终点也可以看作是从终点到起点，因此可以使用从终点开始的反向递推，递推的过程中就可以把 `mini` 记录出来。
+
+```cpp
+class Solution {
+public:
+    int f[1005], mini[1005];
+    vector<int> ans;
+    vector<int> cheapestJump(vector<int>& A, int B) {
+        memset(f, 0x3f, sizeof(f));
+        memset(mini, 0x3f, sizeof(mini));
+        int n = A.size();        
+        if (A[0] < 0 || A[n - 1] < 0) return ans;
+        f[n] = A[n - 1];
+        for (int i = n; i >= 1; --i){
+            for (int j = max(1, i - B); j < i; ++j){
+                if (A[j - 1] < 0) continue;
+                if (f[i] + A[j - 1] <= f[j])
+                    f[j] = f[i] + A[j - 1], 
+                    mini[j] = min(mini[j], i);
+            }
+        }
+        if (f[1] == 0x3f3f3f3f) return ans;
+        for (int i = 1; i <= n; i = mini[i])
+            ans.push_back(i);
+        return ans;
     }
 };
 ```
@@ -2604,8 +4169,193 @@ public:
 这种网格图上寻找最短路径的题目有一些专门的算法。在这里介绍 Hadlock 算法。虽然其的最坏时间复杂度仍然是 $O(nm)$，但实际上效率比较高。
 
 
+# 679
+
+## 方法一
+考虑表达式树，由于只有二元运算符，所以我们 DFS 时只拆成两个部分，然后在这两个部分里面添加符号进行计算。这样的好处在于可以不考虑括号。
+```cpp
+class Solution {
+public:
+    vector<int> nm;
+    vector<double> vec[4][4];
+    void dfs(int l, int r){
+        if (!vec[l][r].empty()) return ;
+        if (l == r){
+            vec[l][r].push_back(nm[l]);
+            return ;
+        }
+        for (int i = l; i < r; ++i){
+            dfs(l, i), dfs(i + 1, r);
+            for (auto x: vec[l][i])
+                for (auto y: vec[i + 1][r]){
+                    vec[l][r].push_back(x + y);
+                    vec[l][r].push_back(x - y);
+                    vec[l][r].push_back(x * y);
+                    if (fabs(y) > 1e-6) 
+                        vec[l][r].push_back(x / y);
+                }
+        }
+    }
+    bool judgePoint24(vector<int>& nums) {
+        nm = nums;
+        sort(nm.begin(), nm.end());
+        do {
+            dfs(0, 3);
+            for (auto x: vec[0][3])
+                if (fabs(x - 24.0) < 1e-6) return true;
+            for (auto& v1: vec)
+                for (auto& v2: v1)
+                    while (!v2.empty())
+                        v2.pop_back();
+        } while (next_permutation(nm.begin(), nm.end()));
+        return false;
+    }
+};
+```
+
+## 方法二
 
 
+# 683
+本题数据范围有点问题，实际上最大数组长度应该在 50000 以下、20000 以上。
+
+## 方法一
+比较经典的那种题目，用平衡树维护集合或者用树状数组维护前缀和都可以。
+
+时间复杂度是 $O(n\log n)$。
+
+```cpp
+class Solution {
+public:
+    int c[50005], n;
+    bool vis[50005];
+    inline int lowbit(int x){
+        return x & (-x);
+    }
+    int query(int r){
+        int res = 0;
+        while (r > 0)
+            res += c[r], r -= lowbit(r);
+        return res;
+    }
+    void add(int r){
+        while (r <= n)
+            c[r] += 1, r += lowbit(r);
+    }
+    int kEmptySlots(vector<int>& bulbs, int K) {
+        n = bulbs.size();
+        for (int i = 0; i < n - K; ++i){
+            int x = bulbs[i];
+            add(x), vis[x] = true;
+            int ll = query(x - K - 1), mid = query(x), rr = query(x + K + 1);
+            if ((x + K + 1 <= n && vis[x + K + 1] && rr == mid + 1) || 
+                (x - K - 1 > 0 && vis[x - K - 1] && mid == ll + 1))
+                return i + 1;
+        }
+        return -1;
+    }
+};
+```
+
+## 方法二
+方法一本质上是模拟，只是使用了数据结构加速了判定的过程。实际上可以采用一些更加巧妙的方法。
+
+显然，问题可以等价转述为寻找两个花盆，使得这两个花盆之间的花开的都比两边晚。这样就可以用滑动窗口或者尺取法来做。
+
+滑动窗口的方法比较简单，下面只给出尺取法的实现。尺取法做的事情也比较简单：如果不符合就将区间直接推进到不符合的位置，直到成功为止。
+
+```cpp
+class Solution {
+public:
+    int tm[50005];
+    int kEmptySlots(vector<int>& bulbs, int K) {
+        int n = bulbs.size();
+        for (int i = 0; i < n; ++i)
+            tm[bulbs[i] - 1] = i + 1;
+        int l = 0, r = K + 1, ans = n + 1;
+        while (r < n){
+            bool flag = true;
+            int targ = max(tm[l], tm[r]);
+            for (int i = l + 1; i < r; ++i)
+                if (tm[i] < targ){
+                    l = i, r = i + K + 1;
+                    flag = false;
+                    break;
+                }
+            if (flag)
+                ans = min(ans, targ),
+                l = r, r += K + 1;
+        }
+        if (ans > n) return -1;
+        return ans;
+    }
+};
+```
+
+# 685
+
+## 方法一
+数据小，直接枚举边然后暴力删边判定。
+
+```cpp
+class Solution {
+public:
+    vector<int> to[1005];
+    int du[1005], s, t, n, tot;
+    bool vis[1005];
+    bool dfs(int cur){
+        ++tot;
+        if (cur == s){
+            for (int v: to[cur]){
+                if (v == t) continue;           // 这条边已经被删了
+                if (!vis[v])
+                    vis[v] = true, dfs(v);
+                else return false;
+            }
+        }else {
+            for (int v: to[cur]){
+                if (!vis[v])
+                    vis[v] = true, dfs(v);
+                else return false;
+            }
+        }
+        return true;
+    }
+    bool ok(){
+        int rt = -1;
+        for (int i = 1; i <= n; ++i)
+            if (!du[i]){
+                if (rt < 0) rt = i;
+                else return false;
+            }
+        if (rt < 0) return false;
+        memset(vis, 0, sizeof(vis));
+        tot = 0;
+        vis[rt] = true;
+        if (!dfs(rt) || tot < n) return false;
+        return true;
+    }
+    vector<int> findRedundantDirectedConnection(vector<vector<int>>& edges) {
+        for (auto& e: edges)
+            to[e[0]].push_back(e[1]), ++du[e[1]];
+        n = edges.size();
+        for (int i = n - 1; i >= 0; --i){
+            s = edges[i][0], t = edges[i][1];
+            --du[t];
+            if (ok()) return edges[i];
+            ++du[t];
+        }
+        return vector<int>();
+    }
+};
+```
+
+## 方法二
+我们仔细看一下，假设存在这条边，那么需要什么条件。
+
+实际上，只有两种可能：要么原图中有一个环，要么有且仅有一个点的入度是 2，要么二者兼具。
+
+1. 有环，有入度为 2 点：这个点必须在环上，否则
 
 # 689
 其实就是把两个的情况再叠加一个上去。
@@ -2636,6 +4386,34 @@ public:
         rans.push_back(f2[ans] - k);
         rans.push_back(ans - k);
         return rans;
+    }
+};
+```
+
+# 699
+本质是线段树问题，但因为数据小可以直接暴力。
+
+用线段树的话要先做离散化。
+```cpp
+class Solution {
+    vector<int> h, ans;
+public:
+    vector<int> fallingSquares(vector<vector<int>>& positions) {
+        int n = positions.size();
+        h.push_back(positions[0][1]);
+        ans.push_back(positions[0][1]);
+        for (int i = 1; i < n; ++i){
+            int hh = 0;
+            for (int j = 0; j < i; ++j){
+                if (positions[j][0] + positions[j][1] <= positions[i][0] ||
+                    positions[j][0] >= positions[i][0] + positions[i][1])
+                    continue;
+                hh = max(hh, h[j]);
+            }
+            h.push_back(hh + positions[i][1]);
+            ans.push_back(max(ans.back(), h.back()));
+        }
+        return ans;
     }
 };
 ```
@@ -2682,6 +4460,273 @@ public:
 
 ## 方法二
 更经典的方法是将黑名单中的数映射到 $[N-B, N)$ 这个区间上。这样只需要求 $[0, N - B)$ 中的随机数即可。
+
+# 711
+一看就非常麻烦的 BFS。主要是旋转不太好处理。
+
+但实际上也没那么难，在判断的时候没必要真的把图形旋转再判断，可以只**旋转和翻转坐标轴**。体现在代码上就是**改变循环的方向**。
+
+例如，一般遍历二维结构都是使用的下面的循环：
+
+```cpp
+for (int i = 0; i < n; ++i)
+    for (int j = 0; j < m; ++j)
+        // do something
+```
+
+如果要把这个二维结构顺时针转九十度，那么可以这么遍历：
+
+```cpp
+for (int i = 0; i < m; ++i)
+    for (int j = n - 1; j >= 0; --j)
+        // do something
+```
+
+如果要把这个二维结构沿着竖直方向翻转，那么可以这么遍历：
+
+```cpp
+for (int i = 0; i < n; ++i)
+    for (int j = m - 1; j >= 0; --j)
+        // do something
+```
+
+（如果不太好理解可以自己画一个图）
+
+至此已经可以看出，上面的组合总共有 8 种，对应每一种旋转+翻转的组合。
+
+之后要做的就比较简单，每次遍历到一个新的联通分量时，将其染成某种颜色，然后和之前已经计入答案的联通分量相对比，如果重复就舍弃当前联通分量，否则加入答案集合。
+
+```cpp
+const int dx[] = {-1, 1, 0, 0}, dy[] = {0, 0, -1, 1};
+// 该结构体用于保存联通分量的信息
+struct Rec{
+    int c, cnt;         // c 为该联通分量的颜色，cnt 为该联通分量中 1 的个数
+    int x1, y1, x2, y2; // x1, y1 和 x2, y2 分别为最小的能覆盖该联通分量的矩形的左上角和右下角的坐标
+    Rec(int _c): c(_c), cnt(0), x1(100), y1(100), x2(-1), y2(-1){} 
+};
+class Solution {
+public:
+    int n, m;
+    bool vis[55][55];
+    vector<Rec> vec;            // 保存了计入答案的联通分量
+    queue<int> qx, qy;
+    void bfs(int sx, int sy, int c, vector<vector<int>>& grid){
+        Rec tmp(c);
+        qx.push(sx), qy.push(sy);
+        grid[sx][sy] = c;
+        vis[sx][sy] = true;
+        while (!qx.empty()){
+            sx = qx.front(), sy = qy.front();
+            qx.pop(), qy.pop();
+            tmp.x1 = min(tmp.x1, sx);
+            tmp.y1 = min(tmp.y1, sy);
+            tmp.x2 = max(tmp.x2, sx);
+            tmp.y2 = max(tmp.y2, sy);
+            ++tmp.cnt;
+            for (int i = 0; i < 4; ++i){
+                int cx = sx + dx[i], cy = sy + dy[i];
+                if (cx < 0 || cy < 0 || cx >= n || cy >= m)
+                    continue;
+                if (grid[cx][cy] && !vis[cx][cy])
+                    grid[cx][cy] = c, 
+                    vis[cx][cy] = true, 
+                    qx.push(cx), qy.push(cy);
+            }
+        }
+        vec.push_back(tmp);     // 暂时将该联通分量记为答案
+    }
+    bool check(vector<vector<int>>& grid){
+        int nn = vec.size();
+        Rec& cur = vec.back();
+        int c = cur.c;
+        int cx1 = cur.x1, cx2 = cur.x2, cy1 = cur.y1, cy2 = cur.y2;
+        int xsize = cx2 - cx1, ysize = cy2 - cy1;
+        for (int T = 0; T < nn - 1; ++T){
+            int cc = vec[T].c, ccnt = vec[T].cnt;
+            if (ccnt != cur.cnt) continue;
+            int xx1 = vec[T].x1, xx2 = vec[T].x2, yy1 = vec[T].y1, yy2 = vec[T].y2;
+            int xxsize = xx2 - xx1, yysize = yy2 - yy1;
+            bool flag;
+            // 下面就是 8 种不同的遍历
+            // 虽然代码较长但实际上很多重复
+            if (xxsize == xsize && yysize == ysize){
+                flag = true;
+                for (int i = 0; i <= xsize && flag; ++i)
+                    for (int j = 0; j <= ysize; ++j)
+                        if (grid[cx1 + i][cy1 + j] == c && grid[xx1 + i][yy1 + j] != cc){
+                            flag = false;
+                            break;
+                        }
+                if (flag) return false;
+                flag = true;
+                for (int i = 0; i <= xsize && flag; ++i)
+                    for (int j = 0; j <= ysize; ++j)
+                        if (grid[cx1 + i][cy1 + j] == c && grid[xx1 + i][yy2 - j] != cc){
+                            flag = false;
+                            break;
+                        }
+                if (flag) return false;
+                flag = true;
+                for (int i = 0; i <= xsize && flag; ++i)
+                    for (int j = 0; j <= ysize; ++j)
+                        if (grid[cx1 + i][cy1 + j] == c && grid[xx2 - i][yy1 + j] != cc){
+                            flag = false;
+                            break;
+                        }
+                if (flag) return false;
+                flag = true;
+                for (int i = 0; i <= xsize && flag; ++i)
+                    for (int j = 0; j <= ysize; ++j)
+                        if (grid[cx1 + i][cy1 + j] == c && grid[xx2 - i][yy2 - j] != cc){
+                            flag = false;
+                            break;
+                        }
+                if (flag) return false;
+            }
+            if (yysize == xsize && xxsize == ysize){
+                flag = true;
+                for (int i = 0; i <= xsize && flag; ++i)
+                    for (int j = 0; j <= ysize; ++j)
+                        if (grid[cx1 + i][cy1 + j] == c && grid[xx1 + j][yy1 + i] != cc){
+                            flag = false;
+                            break;
+                        }
+                if (flag) return false;
+                flag = true;
+                for (int i = 0; i <= xsize && flag; ++i)
+                    for (int j = 0; j <= ysize; ++j)
+                        if (grid[cx1 + i][cy1 + j] == c && grid[xx2 - j][yy1 + i] != cc){
+                            flag = false;
+                            break;
+                        }
+                if (flag) return false;
+                flag = true;
+                for (int i = 0; i <= xsize && flag; ++i)
+                    for (int j = 0; j <= ysize; ++j)
+                        if (grid[cx1 + i][cy1 + j] == c && grid[xx1 + j][yy2 - i] != cc){
+                            flag = false;
+                            break;
+                        }
+                if (flag) return false;
+                flag = true;
+                for (int i = 0; i <= xsize && flag; ++i)
+                    for (int j = 0; j <= ysize; ++j)
+                        if (grid[cx1 + i][cy1 + j] == c && grid[xx2 - j][yy2 - i] != cc){
+                            flag = false;
+                            break;
+                        }
+                if (flag) return false;
+            }
+        }
+        return true;
+    }
+    int numDistinctIslands2(vector<vector<int>>& grid) {
+        n = grid.size(), m = grid[0].size();
+        int tot_color = 0;
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < m; ++j)
+                if (!vis[i][j] && grid[i][j]){
+                    ++tot_color, bfs(i, j, tot_color, grid);
+                    if (!check(grid)) vec.pop_back();       // 该联通分量与答案中重复，舍弃
+                }
+        return vec.size();
+    }
+};
+```
+
+# 715
+经典的区间操作问题。我们维护一个有序的区间列表即可。
+
+由于数据量很小，因此在插入和删除的时候可以直接使用线性的方法。如果要更快的话可以考虑维护一个双向链表，这样的话每种操作可能都可以做到 $O(\log n)$ 的时间复杂度。
+
+```cpp
+class RangeModule {
+    pair<int, int> vec[1005], tmp[1005];
+    int cnt_vec, cnt_tmp;
+    void show(){
+        for (int i = 0; i < cnt_vec; ++i){
+            cout << "[" << vec[i].first << ", " << vec[i].second << "]" << endl;
+        }
+    }
+public:
+    RangeModule() {
+        cnt_vec = 0;
+    }
+    
+    void addRange(int left, int right) {
+        cnt_tmp = 0;
+        int flag = -1;
+        for (int i = 0; i < cnt_vec; ++i){
+            int l = vec[i].first, r = vec[i].second;
+            if (r < left) 
+                tmp[cnt_tmp++] = vec[i];
+            else if (r == left){
+                left = l;
+            }else if (r <= right){
+                left = min(left, l);
+            }else {
+                if (l <= left) {
+                    flag = i;
+                    break;
+                }
+                if (l <= right) right = r;
+                else {
+                    tmp[cnt_tmp++] = make_pair(left, right);
+                    flag = i;
+                    break;
+                }
+            }
+        }
+        if (flag < 0) tmp[cnt_tmp++] = make_pair(left, right);
+        else {
+            for (int i = flag; i < cnt_vec; ++i)
+                tmp[cnt_tmp++] = vec[i];
+        }
+        for (int i = 0; i < cnt_tmp; ++i)
+            vec[i] = tmp[i];
+        cnt_vec = cnt_tmp;
+    }
+    
+    bool queryRange(int left, int right) {
+        int l = 0, r = cnt_vec;
+        while (r > l){
+            int mid = (l + r) >> 1;
+            if (vec[mid].second < right) l = mid + 1;
+            else r = mid; 
+        }
+        return l < cnt_vec && vec[l].first <= left;
+    }
+    
+    void removeRange(int left, int right) {
+        cnt_tmp = 0;
+        int flag = cnt_vec;
+        for (int i = 0; i < cnt_vec; ++i){
+            int l = vec[i].first, r = vec[i].second;
+            if (r <= left) 
+                tmp[cnt_tmp++] = vec[i];
+            else if (r <= right){
+                if (l < left) 
+                    tmp[cnt_tmp++] = make_pair(l, left);
+            }else {
+                if (l < right){
+                    if (l < left)
+                        tmp[cnt_tmp++] = make_pair(l, left);
+                    tmp[cnt_tmp++] = make_pair(right, r);
+                    flag = i + 1;
+                }else {
+                    flag = i;   
+                }
+                break;
+            }
+        }
+        for (int i = flag; i < cnt_vec; ++i)
+            tmp[cnt_tmp++] = vec[i];
+        for (int i = 0; i < cnt_tmp; ++i)
+            vec[i] = tmp[i];
+        cnt_vec = cnt_tmp;
+    }
+};
+```
 
 # 719
 排序后二分
@@ -2759,6 +4804,387 @@ class Solution:
         return "".join(aans)
 ```
 
+# 727
+
+## 方法一
+DP。设 $f(i, j)$ 为用 $S$ 的前 $i$ 个字符匹配掉 $T$ 的前 $j$ 个字符所需要的子串的最短长度。转移方程为：（下面假设字符串的下标从 1 开始）
+
+$$
+f(i, j) = \begin{cases}
++\infty & \text{if } S[i] \neq T[j] \\
+\min_{t < i}\left\{f(t, j - 1) + i - t \right\}  & \text{if } S[i] = T[j] \text{ and } j > 1 \\
+1  & \text{if } S[i] = T[j] \text{ and } j = 1
+\end{cases}
+$$
+
+时间复杂度为 $O(\mid S \mid \mid T \mid)$，空间复杂度可以用滚动数组优化到 $O(\mid S \mid)$。
+
+```cpp
+class Solution {
+public:
+    int f[2][20005];
+    string minWindow(string S, string T) {
+        int n = S.length(), m = T.length();
+        for (int i = 0; i < n; ++i)
+            if (S[i] == T[0]) f[1][i + 1] = 1;
+            else f[1][i + 1] = 0x3f3f3f3f;
+        for (int j = 1; j < m; ++j){
+            int mini = 0x3f3f3f3f;
+            int B = (j + 1) & 1, B_ = B ^ 1;
+            for (int i = 0; i < n; ++i){
+                if (S[i] == T[j] && mini < 0x3f3f3f3f)
+                    f[B][i + 1] = mini + i + 1;
+                else f[B][i + 1] = 0x3f3f3f3f;
+                if (f[B_][i + 1] < 0x3f3f3f3f)
+                    mini = min(mini, f[B_][i + 1] - i - 1);
+            }
+        }
+        int ans = 0x3f3f3f3f;
+        for (int i = 0; i < n; ++i)
+            ans = min(ans, f[m & 1][i + 1]);
+        if (ans == 0x3f3f3f3f) return string("");
+        for (int i = 0; i < n; ++i)
+            if (f[m & 1][i + ans] == ans)
+                return S.substr(i, ans);
+        return string("");
+    }
+};
+```
+
+## 方法二
+使用类似于滑动窗口的方法来做。
+
+# 732
+
+## 方法一
+维护有序区间集合，每次操作暴力添加。时间复杂度高、代码长。
+
+```cpp
+class MyCalendarThree {
+    pair<pair<int, int>, int> vec[1005], tmp[1005];
+    int cnt_vec, cnt_tmp, ans;
+public:
+    MyCalendarThree() {
+        cnt_vec = ans = 0;
+    }
+    
+    int book(int start, int end) {
+        cnt_tmp = 0;
+        int flag = -1;
+        for (int i = 0; i < cnt_vec; ++i){
+            int l = vec[i].first.first, r = vec[i].first.second;
+            int kk = vec[i].second;
+            if (r <= start) 
+                tmp[cnt_tmp++] = vec[i];
+            else if (r <= end){
+                if (l < start){
+                    tmp[cnt_tmp++] = make_pair(make_pair(l, start), kk);
+                    tmp[cnt_tmp++] = make_pair(make_pair(start, r), kk + 1);
+                }else {
+                    if (l > start)
+                        tmp[cnt_tmp++] = make_pair(make_pair(start, l), 1);
+                    tmp[cnt_tmp++] = make_pair(make_pair(l, r), kk + 1);
+                }
+                if (r == end) {
+                    flag = i + 1; 
+                    break;
+                }else start = r;
+            }else {
+                if (l >= end){
+                    tmp[cnt_tmp++] = make_pair(make_pair(start, end), 1);
+                    flag = i;
+                    break;
+                }
+
+                if (l < start) 
+                    tmp[cnt_tmp++] = make_pair(make_pair(l, start), kk);
+                else if (l > start)
+                    tmp[cnt_tmp++] = make_pair(make_pair(start, l), 1);
+                
+                tmp[cnt_tmp++] = make_pair(make_pair(min(start, l), end), kk + 1);
+                tmp[cnt_tmp++] = make_pair(make_pair(end, r), kk);
+                flag = i + 1;
+                break;
+            }
+        }
+        if (flag < 0) tmp[cnt_tmp++] = make_pair(make_pair(start, end), 1);
+        else {
+            for (int i = flag; i < cnt_vec; ++i)
+                tmp[cnt_tmp++] = vec[i];
+        }
+        for (int i = 0; i < cnt_tmp; ++i)
+            vec[i] = tmp[i], ans = max(ans, vec[i].second);
+        cnt_vec = cnt_tmp;
+        return ans;
+    }
+};
+```
+
+## 方法二
+这种题目一般离线很好做，因为可以离散化然后构建差分数组做。
+
+但这里是在线的。怎么办呢？用一个 map 实现类似于离散化的操作即可。时间复杂度低、代码短。
+
+实际上很多这样的区间题目都可以用 map 解决。。。
+
+```cpp
+class MyCalendarThree {
+    map<int, int> mp;
+public:
+    MyCalendarThree() {
+        mp.clear();
+    }
+    
+    int book(int start, int end) {
+        if (!mp.count(start)) mp[start] = 1;
+        else ++mp[start];
+        if (!mp.count(end)) mp[end] = -1;
+        else --mp[end];
+        int cnt = 0, ans = 0;
+        for (auto& p: mp){
+            cnt += p.second, ans = max(ans, cnt);
+        }
+        return ans;
+    }
+};
+```
+
+## 方法三
+动态开点线段树。
+
+还是算了吧。
+
+# 745
+
+## 方法一
+构建正反字典树，暴力查找。
+```cpp
+class WordFilter {
+    int id[20005], id_rev[20005];
+    int trie[20005][26], trie_rev[20005][26];
+    int n, ans;
+    unordered_set<int> st;
+    void dfs(int cur){
+        if (id[cur] >= 0) st.insert(id[cur]);
+        for (int i = 0; i < 26; ++i)
+            if (trie[cur][i] > 0) dfs(trie[cur][i]);
+    }
+    void dfs2(int cur){
+        if (id_rev[cur] >= 0 && st.count(id_rev[cur])) 
+            ans = max(ans, id_rev[cur]);
+        for (int i = 0; i < 26; ++i)
+            if (trie_rev[cur][i] > 0) dfs2(trie_rev[cur][i]);
+    }
+public:
+    WordFilter(vector<string>& words) {
+        n = words.size();
+        memset(id, -1, sizeof(id));
+        memset(id_rev, -1, sizeof(id_rev));
+        memset(trie, 0, sizeof(trie));
+        memset(trie_rev, 0, sizeof(trie_rev));
+        int cnt = 1, cnt_rev = 1;
+        for (int i = 0; i < n; ++i){
+            auto& s = words[i];
+            int p = 1, l = s.length();
+            for (char c: s){
+                if (!trie[p][c - 'a'])
+                    trie[p][c - 'a'] = ++cnt;
+                p = trie[p][c - 'a'];
+            }
+            id[p] = max(id[p], i);
+            p = 1;
+            for (int i = l - 1; i >= 0; --i){
+                if (!trie_rev[p][s[i] - 'a'])
+                    trie_rev[p][s[i] - 'a'] = ++cnt_rev;
+                p = trie_rev[p][s[i] - 'a'];
+            }
+            id_rev[p] = max(id_rev[p], i);
+        }
+    }
+    
+    int f(string prefix, string suffix) {
+        st.clear();
+        int p = 1, lp = prefix.length(), ls = suffix.length();
+        for (int i = 0; i < lp && p; ++i)
+            p = trie[p][prefix[i] - 'a'];
+        if (!p) return -1;
+        dfs(p);
+        ans = -1, p = 1;
+        for (int i = ls - 1; i >= 0 && p; --i)
+            p = trie_rev[p][suffix[i] - 'a'];
+        if (!p) return -1;
+        dfs2(p);
+        return ans;
+    }
+};
+```
+
+## 方法二
+
+
+
+# 749
+思路简单但实现比较难的 BFS 题。大致思路是执行下面的循环：
+
+1. 将所有联通分量染色。**注意：被墙隔开的两个联通分量不能算作同一个！也就是墙会阻断联通性！**
+2. 查看所有未感染区域，统计每一种颜色的联通分量的威胁程度。
+3. 选出威胁最大的联通分量，周围（和未感染区域联通的部分）装上墙。
+4. 所有已感染区域扩张一步。
+
+上面这个循环的终止条件是：第 3 步中，威胁最大的联通分量威胁到的区域个数为 0。这意味着要么病毒已经停止传播，要么所有区域都已被感染。
+
+时间复杂度是 $O(n^2m^2)$。
+
+```cpp
+const int dx[] = {-1, 1, 0, 0}, dy[] = {0, 0, -1, 1};
+class Solution {
+public:
+    bool st[55][55][4], vis[55][55];
+    int maxi[2505], n, m;
+    queue<int> qx, qy;
+    void bfs(int sx, int sy, int c, vector<vector<int>>& grid){
+        qx.push(sx), qy.push(sy);
+        grid[sx][sy] = c;
+        vis[sx][sy] = true;
+        while (!qx.empty()){
+            sx = qx.front(), sy = qy.front();
+            qx.pop(), qy.pop();
+            for (int i = 0; i < 4; ++i){
+                int cx = sx + dx[i], cy = sy + dy[i];
+                if (cx < 0 || cy < 0 || cx >= n || cy >= m)
+                    continue;
+                if (grid[cx][cy] && !vis[cx][cy] && !st[sx][sy][i])
+                    grid[cx][cy] = c, 
+                    vis[cx][cy] = true, 
+                    qx.push(cx), qy.push(cy);
+            }
+        }
+    }
+    int color(vector<vector<int>>& grid){
+        int tot_color = 0;
+        memset(vis, 0, sizeof(vis));
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < m; ++j)
+                if (grid[i][j] && !vis[i][j])
+                    ++tot_color, bfs(i, j, tot_color, grid);
+        return tot_color;
+    }
+    void count(vector<vector<int>>& grid){
+        int cnt = 0, cand[4];
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < m; ++j){
+                if (grid[i][j]) continue;
+                int cnt_nb = 0;
+                for (int d = 0; d < 4; ++d){
+                    int cx = i + dx[d], cy = j + dy[d];
+                    if (cx < 0 || cy < 0 || cx >= n || cy >= m)
+                        continue;
+                    if (!st[i][j][d] && grid[cx][cy]) 
+                        cand[cnt_nb++] = grid[cx][cy];
+                }
+                sort(cand, cand + cnt_nb);
+                int real_cnt_nb = unique(cand, cand + cnt_nb) - cand;
+                for (int d = 0; d < real_cnt_nb; ++d)
+                    ++maxi[cand[d]];
+            }
+    }
+    int build(int c, vector<vector<int>>& grid){
+        int cnt = 0;
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < m; ++j){
+                if (grid[i][j] != c) continue;
+                for (int d = 0; d < 4; ++d){
+                    int cx = i + dx[d], cy = j + dy[d];
+                    if (cx < 0 || cy < 0 || cx >= n || cy >= m)
+                        continue;
+                    if (!grid[cx][cy] && !st[i][j][d]) 
+                        ++cnt, 
+                        st[i][j][d] = st[cx][cy][d ^ 1] = true;
+                }
+            }
+        return cnt;
+    }
+    void expand(vector<vector<int>>& grid){
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < m; ++j){
+                if (grid[i][j]) continue;
+                for (int d = 0; d < 4; ++d){
+                    int cx = i + dx[d], cy = j + dy[d];
+                    if (cx < 0 || cy < 0 || cx >= n || cy >= m)
+                        continue;
+                    if (!st[i][j][d] && grid[cx][cy] > 0)     // 直接接触
+                        grid[i][j] = -1;
+                }
+            }
+    }
+    void show(vector<vector<int>>& grid){       // 调试用
+        for (int i = 0; i < n; ++i){
+            for (int j = 0; j < m; ++j){
+                cout << grid[i][j] << " ";
+            }
+            cout << endl;
+        }
+        cout << endl;
+    }
+    int containVirus(vector<vector<int>>& grid) {
+        n = grid.size(), m = grid[0].size();
+        int ans = 0;
+        for (; ; ){
+            int tot_color = color(grid);
+            memset(maxi, 0, sizeof(int) * (tot_color + 1));
+            count(grid);
+            int p = -1, maxii = 0;
+            for (int i = 1; i <= tot_color; ++i)
+                if (maxi[i] > maxii) 
+                    maxii = maxi[i], p = i;
+            if (maxii == 0) return ans;
+            ans += build(p, grid);
+            expand(grid);
+        }
+    }
+};
+```
+
+# 753
+容易猜到，要让字符串尽可能短，就需要让前后相邻的密码重叠的部分尽量多。比如 4096 和 0961，叠在一起就是 40961，节省了三个字符。
+
+但这看上去像是一个找含 $k^n$ 个点（因为可能的密码个数就有这么多）的图的哈密尔顿回路的问题。实际上，这可以转化为欧拉回路来做。大概就是把点转化成边，如 4096 这个点可以转化成 409X 到 096X 之间的一条边。这样点的个数为 $k^{n-1}$，边的个数就是 $k^n$。显然，这样一张图的欧拉回路存在。
+
+这么转化就很容易做了，直接套上求欧拉回路的算法即可。
+
+另外，最好特判 $n=1$ 的情况。
+
+```cpp
+class Solution {
+public:
+    int ten, K;
+    bool vis[1005][10];
+    string ans;
+    void dfs(int cur){  
+        for (int i = 0; i < K; ++i)
+            if (!vis[cur][i]){
+                vis[cur][i] = true;
+                dfs((cur % ten) * 10 + i);
+            }
+        ans.push_back(cur % 10 + '0');
+    }
+    string crackSafe(int n, int k) {
+        if (n == 1){
+            for (int i = 0; i < k; ++i)
+                ans.push_back(i + '0');
+            return ans;
+        }
+        ten = 1, K = k;
+        for (int i = 0; i < n - 2; ++i)
+            ten *= 10;
+        dfs(0);
+        for (int i = 0; i < n - 2; ++i)
+            ans.push_back('0');
+        return ans;
+    }
+};
+```
+
 # 765
 将一对情侣看作是一个节点，将交错的两对情侣相连边，容易发现一对情侣至多位于一个环上，交换次数等于情侣对数减去环个数。
 
@@ -2828,6 +5254,98 @@ public:
 ```
 
 ## 方法二
+
+# 772
+本题的测试数据过于恶心。。。
+
+考虑下面的边界情况：
+1. INT_MIN
+2. 0-INT_MAX
+3. +-+-+-+-+-+-+-+-+-+-+-1*+-+-+-+-+-+-+-+-+-+-+-1
+
+都处理好了就可以了。
+```cpp
+class Solution {
+    int pro[130];
+    stack<long long> opr;
+    stack<char> opt;
+    void calc(){
+        long long u = opr.top(); opr.pop();
+        long long v = opr.top(); opr.pop();
+        char c = opt.top(); opt.pop();
+        if (c == '+') opr.push(v + u);
+        if (c == '-') opr.push(v - u);
+        if (c == '*') opr.push(v * u);
+        if (c == '/') opr.push(v / u);
+    }
+public:
+    int calculate(string s) {
+        if (!s.length()) return 0;
+        pro['+'] = pro['-'] = 1, 
+        pro['*'] = pro['/'] = 2;
+        pro['('] = 0;
+        opt.push('(');
+        s.push_back(')');
+        long long x = -1, f = 1;
+        char lst = '(';
+        for (char c: s){
+            if (isdigit(c)){
+                if (x < 0) x = 0;
+                x = x * 10 + c - '0';
+            }else {
+                if (c == '('){
+                    opt.push('(');
+                }else if (c == ')'){
+                    if (x >= 0)
+                        opr.push(f * x), x = -1, f = 1;
+                    while (opt.top() != '(')
+                        calc();
+                    opt.pop();
+                }else if (c != ' '){
+                    if (x < 0 && lst != ')'){
+                        if (c == '-') f = -f;
+                    }else {
+                        if (x >= 0)
+                            opr.push(f * x), x = -1, f = 1;
+                        while (pro[opt.top()] >= pro[c])
+                            calc();
+                        opt.push(c);
+                    }
+                }else continue;
+            }
+            lst = c;
+        }
+        return opr.top();
+    }
+};
+```
+
+# 774
+二分
+```cpp
+class Solution {
+public:
+    double minmaxGasDist(vector<int>& stations, int K) {
+        sort(stations.begin(), stations.end());
+        double l = 0, r = 0;
+        int n = stations.size();
+        for (int i = 0; i < n - 1; ++i)
+            r = max(r, 1.0 * stations[i + 1] - stations[i]);
+        while (r - l > 1e-6){
+            double mid = (l + r) * 0.5;
+            int left = K;
+            for (int i = 0; i < n - 1; ++i){
+                int nd = static_cast<int>(ceil((stations[i + 1] - stations[i]) / mid)) - 1;
+                left -= nd;
+                if (left < 0) break;
+            }
+            if (left >= 0) r = mid;
+            else l = mid;
+        }
+        return l;
+    }
+};
+```
 
 # 779
 水水水 BFS
@@ -3179,6 +5697,8 @@ public:
 
 # 828
 对于每一个位置的字母计算其的贡献即可。容易发现这个贡献只需要知道其左边和右边第一个相同字母的位置就可以计算出来，所以只需要两个数组记录前一个和前前一个和该字母相同的字母的位置即可。
+
+还有一种很烂的方法是以字符为端点计算。这样的话时间复杂度会飙升，不推荐。
 ```cpp
 int lst[30], lst2[30];
 class Solution {
@@ -3459,6 +5979,40 @@ public:
 };
 ```
 
+# 857
+我们设 $ave[i] = wage[i] / quality[i]$。按照题目要求，如果雇佣 $k$ 个人，那么每个人单位 quality 要支付的钱就是这些人中 $ave$ 的最大者。显然如果确定了这个最大者，我们只需要尽量让 quality 之和减小即可。
+
+那么后面的做法就很清楚：对 $ave[i]$ 排序，然后从小到大枚举 $ave[i]$，用一个大根堆维护 $k$ 个 quality 最小的 $j$，其中 $ave[j] \le ave[i]$。
+
+时间复杂度是 $O(N\log N + N\log K)$。
+
+```cpp
+class Solution {
+    priority_queue<int> pq;
+    pair<double, int> pp[10005];
+public:
+    double mincostToHireWorkers(vector<int>& quality, vector<int>& wage, int K) {
+        int n = quality.size();
+        for (int i = 0; i < n; ++i)
+            pp[i].first = 1.0 * wage[i] / quality[i], 
+            pp[i].second = i;
+        sort(pp, pp + n);
+        int sum = 0;
+        for (int i = 0; i < K; ++i)
+            pq.push(quality[pp[i].second]), 
+            sum += quality[pp[i].second];
+        double ans = 1e10;
+        for (int i = K; i < n; ++i){
+            ans = min(ans, pp[i - 1].first * sum);
+            pq.push(quality[pp[i].second]), sum += quality[pp[i].second];
+            sum -= pq.top(), pq.pop();
+        }
+        ans = min(ans, pp[n - 1].first * sum);
+        return ans;
+    }
+};
+```
+
 # 862
 
 ## 方法一
@@ -3674,6 +6228,80 @@ class FreqStack:
         return x
 ```
 
+# 899
+乍一看这是一个很困难的题目，因为不知道怎么构造答案。不过 $K=1$ 的情况是简单的，只需要求最小表示即可。
+
+$K\ge 2$ 呢？可以证明，这时我们可以交换串中任意两个字符。我们构造这个过程。比如要交换 $S[i]$ 和 $S[j]$（假设 $i < j$）可以：
+
+1. 只对第一个字符操作，先让 $S[i]$ 移到开头。此时串为 $S[i], \cdots, S[n], S[1], \cdots, S[i-1]$。
+2. 只对第二个字符操作，让 $S[j]$ 移到 $S[i]$ 后面，然后把 $S[i]$ 移到末尾。这时 $S[i]$ 在 $S[j - 1]$ 后面，串为 $S[j], \cdots, S[n], S[1], \cdots, S[i-1], S[i+1], \cdots, S[j-1], S[i]$。
+3. 只对第二个字符操作，让 $S[i-1]$ 移到最后，然后把 $S[j]$ 移到末尾。
+4. 只对第一个字符操作，让 $S[1]$ 移到开头。此时 $S[i], S[j]$ 互换位置。
+
+这样就说明可以排序了。因此 $K\ge 2$ 的时候直接对原串排序即可。
+```cpp
+class Solution {
+    int minrep(string& s){
+        int n = s.length();
+        int i = 0, j = 1, k = 0;
+        while (i < n && j < n && k < n){
+            int ri = (i + k) % n, rj = (j + k) % n;
+            if (s[ri] == s[rj]) ++k;
+            else{
+                if (s[ri] > s[rj]) i += k + 1;
+                else j += k + 1;
+                if (i == j) ++j;
+                k = 0;
+            }
+        }
+        return min(i, j);
+    }
+public:
+    string orderlyQueue(string S, int K) {
+        if (K > 1) {
+            sort(S.begin(), S.end());
+            return S;
+        } 
+        int res = minrep(S);
+        return S.substr(res) + S.substr(0, res);
+    }
+};
+```
+
+# 903
+显然，对于这种排列的题，我们考虑子结构的时候一般都是考虑往排列里面插入数，同时只考虑排列中每一个数的相对大小。
+
+因此可以设 $f(i, j)$ 表示**后** $i$ 个字母对应的、开头数为 $j$ 的排列个数。（实际上换一个方向应该也是一样的）
+
+那么初始条件是 $f(0, 1) = 1$。转移方程容易列写，只需要注意：当前数的选择会改变之前排列中数的实际值即可，此处不述。
+
+时间复杂度为 $O(n^2)$。
+```cpp
+class Solution {
+public:
+    int f[205][205];
+    int numPermsDISequence(string S) {
+        const int M = 1000000007;
+        int l = S.length();
+        f[0][1] = 1;
+        for (int i = l - 1; i >= 0; --i){
+            int tot = 0;            // 积累答案
+            if (S[i] == 'D'){
+                for (int j = 1; j <= l - i + 1; ++j)
+                    f[l - i][j] = tot, tot = tot + f[l - i - 1][j] >= M ? tot + f[l - i - 1][j] - M: tot + f[l - i - 1][j];
+            }else {
+                for (int j = l - i; j >= 1; --j)
+                    tot = tot + f[l - i - 1][j] >= M ? tot + f[l - i - 1][j] - M: tot + f[l - i - 1][j], f[l - i][j] = tot;
+            }
+        }
+        int ans = 0;
+        for (int i = 1; i <= l + 1; ++i)
+            ans = (ans + f[l][i] >= M ? ans + f[l][i] - M: ans + f[l][i]);
+        return ans;
+    }
+};
+```
+
 # 906
 
 ## 方法一
@@ -3695,6 +6323,34 @@ public:
 
 ## 方法二
 使用数学方法。
+
+# 920
+这个题目比较迷惑，说的 $K$ 首歌是指**不同的 $K$ 首歌**。如果没有这个条件几乎是做不出来的。
+
+## 方法一
+DP。设 $f(i, j)$ 为播了前 $i$ 首歌，总共有 $j$ 个不同的歌的方案数目。那么很容易列出：
+$$
+f(i, j) = f(i - 1, j - 1) \times (N - j + 1) + f(i - 1, j) \times \max\left\{j - K, 0\right\}
+$$
+
+第一项表示从没听过的选，第二项表示从听过的选。
+```cpp
+class Solution {
+    int f[105][105];
+public:
+    int numMusicPlaylists(int N, int L, int K) {
+        if (L < N) return 0;
+        const int M = 1000000007;
+        f[0][0] = 1;
+        for (int i = 1; i <= L; ++i)
+            for (int j = 1; j <= N; ++j)
+                f[i][j] = 1ll * f[i - 1][j - 1] * (N - j + 1) % M + 
+                    1ll * f[i - 1][j] * max(j - K, 0) % M,
+                f[i][j] %= M;
+        return f[L][N];
+    }
+};
+```
 
 # 940
 设 $f(i)$ 为以 $i$ 为结尾的所有子序列的数目，则有：
@@ -3842,6 +6498,49 @@ public:
     }
 };
 ```
+
+# 956
+和某些背包问题很像的 DP。
+
+## 方法一
+设 $f(j, i)$ 表示前 $j$ 根钢筋可以组成的组合中，左半部分高度减去右半部分高度为 $i$ 时，钢筋的最大高度。
+
+显然我们想要的状态是 $f(n, 0)$。对于一个钢筋转移有两种：加到左边或者右边。由于对称性，我们只在加到左边的时候延长最大高度。
+
+下面的代码用了滚动数组优化。
+```cpp
+class Solution {
+    int f[10005], g[10005];
+public:
+    int tallestBillboard(vector<int>& rods) {
+        memset(f, -1, sizeof(f));
+        int sum = 0;
+        for (int x: rods) sum += x;
+        f[sum] = 0;
+        for (int x: rods){
+            memset(g, -1, sizeof(g));
+            for (int i = -sum + x; i <= sum; ++i)
+                if (f[i + sum] >= 0)
+                    g[i - x + sum] = max(f[i + sum], g[i - x + sum]);
+            for (int i = -sum; i <= sum - x; ++i)
+                if (f[i + sum] >= 0)
+                    g[i + x + sum] = max(f[i + sum] + x, g[i + x + sum]);
+            for (int i = -sum; i <= sum; ++i)
+                f[i + sum] = max(f[i + sum], g[i + sum]);
+        }
+        return f[sum];
+    }
+};
+```
+
+## 方法二
+和方法一差不多，只不过我们稍微改变一下状态的设计。
+
+设 $f(j, i)$ 表示前 $j$ 根钢筋可以组成的组合中，左右高度之差的绝对值为 $i$ 时，钢筋的**高度之和**。
+
+我认为这种状态的设计比上面的更好，上面的还是比较原始，下面这种巧妙地避免了差为负数的情况，同时也可以给出正确答案。
+
+代码就不写了。
 
 # 960
 扩展版本的 LIS，**把删除转换为选取最多的列**即可。
@@ -4136,6 +6835,95 @@ public:
 };
 ```
 
+# 1012
+
+## 方法一
+显然可以转化为反面的有多少数 $\le N$ 且每一位都不相同来做。
+
+如果 $N =10^9$ 就先让 $N$ 减 1，防止后续溢出。
+
+我们暴力枚举和 $N$ 长度相同的排列，看这个排列转换成为十进制数之后会不会比 $N$ 小。然后对于比 $N$ 小的长度 $i$，可以直接用排列组合算出答案，为 $A_{10}^{i} - A_{9}^{i-1}$。前面那一项是 0-9 的排列，后一项是以 0 开头的排列。
+
+这个方法不做任何优化就可以过，但是时间效率不高。
+
+```cpp
+class Solution {
+    int nn, ws, ans, fac[11];
+    int get(int x){
+        int res = 0;
+        while (x > 0) x /= 10, ++res;
+        return res;
+    }
+    void dfs(int cur, int acc, int vis){
+        if (cur == ws){
+            if (acc <= nn) --ans;
+            return ;
+        }
+        for (int i = 0; i < 10; ++i)
+            if (!(vis & (1 << i)))
+                dfs(cur + 1, acc * 10 + i, vis | (1 << i));
+    }
+public:
+    int numDupDigitsAtMostN(int N) {
+        if (N <= 10) return 0; 
+        ans = N;
+        if (N == 1000000000) --N, --ans;
+        ws = get(N), nn = N;
+        ans -= 9;
+        fac[1] = 1;
+        for (int i = 2; i <= 10; ++i)
+            fac[i] = fac[i - 1] * i;
+        for (int i = 2; i < ws; ++i)
+            ans -= fac[10] / fac[10 - i] - fac[9] / fac[10 - i];
+        for (int i = 1; i <= 9; ++i)
+            dfs(1, i, (1 << i));
+        return ans;
+    }
+};
+```
+
+## 方法二
+使用数位 DP。
+
+# 1028
+处理出节点的值和深度，然后递归建树即可。
+```cpp
+class Solution {
+public:
+    pair<int, int> pp[1005];
+    int tot;
+    TreeNode* build(int l, int r){
+        if (r < l) return nullptr;
+        TreeNode* rt = new TreeNode(pp[l].first);
+        for (int j = l + 2; j <= r; ++j){
+            if (pp[j].second != pp[l].second + 1)
+                continue;
+            rt->left = build(l + 1, j - 1);
+            rt->right = build(j, r);
+            return rt;
+        }
+        rt->left = build(l + 1, r);
+        return rt;
+    }
+    TreeNode* recoverFromPreorder(string S) {
+        int l = S.length();
+        tot = 0;
+        for (int i = 0; i < l; ){
+            int j = i;
+            while (j < l && S[j] == '-')
+                ++j;
+            pp[tot].second = j - i;
+            int x = 0;
+            while (j < l && S[j] != '-')
+                x = x * 10 + S[j] - '0', ++j;
+            pp[tot++].first = x;
+            i = j;
+        }
+        return build(0, tot - 1);
+    }
+};
+```
+
 # 1032
 对每一个字符串反转，然后建立 Trie。每次询问都查询一次即可。
 
@@ -4399,6 +7187,27 @@ public:
 };
 ```
 
+# 1121
+这题是真的强。。。
+
+由于本题不要求构造，只要求判定，所以只需要统计每一个数的出现次数，然后看最大出现次数是否比 $\frac{N}{K}$ 大即可。大就一定失败。
+
+为什么？假设该判定条件不满足，就一定可行吗？理论上可以，但目前我还不会证明。
+
+```cpp
+// 伪贪心
+class Solution {
+public:
+    int cnt[100005];
+    bool canDivideIntoSubsequences(vector<int>& nums, int K) {
+        int maxi = -1, n = nums.size();
+        for (int x: nums)
+            ++cnt[x], maxi = max(maxi, cnt[x]);
+        return maxi * K <= n;
+    }
+};
+```
+
 # 1125
 背包型状压 DP。（状压式背包）
 
@@ -4435,6 +7244,35 @@ public:
         for (int i = choice[lim], j = lim; j > 0; j = pos[j], i = choice[j])
             aans.push_back(i);
         return aans;
+    }
+};
+```
+
+# 1136
+拓扑排序
+```cpp
+class Solution {
+public:
+    int du[5005], dis[5005];
+    vector<int> to[5005];
+    int minimumSemesters(int N, vector<vector<int>>& relations) {
+        for (auto& p: relations)
+            ++du[p[1]], to[p[0]].push_back(p[1]);
+        queue<int> q;
+        int cnt = 0, ans = 1;
+        for (int i = 1; i <= N; ++i)    
+            if (!du[i])
+                dis[i] = 1, q.push(i);
+        while (!q.empty()){
+            int h = q.front();
+            q.pop(), ++cnt;
+            for (int v: to[h]){
+                --du[v], dis[v] = max(dis[v], dis[h] + 1);
+                if (!du[v]) q.push(v), ans = max(ans, dis[v]);
+            }
+        }
+        if (cnt < N) return -1;
+        return ans;
     }
 };
 ```
@@ -4549,6 +7387,43 @@ public:
         r[l] = 0;
         build_sa(r, sa, l + 1, 26 + 1);
         return s.substr(sa[l]);
+    }
+};
+```
+
+# 1168
+看起来像是最小生成树，实际上稍微有些变化。
+
+可以直接暴力讨论每一个联通分量内的情况，决定哪些边该去、哪些不该，但这比较麻烦。更简洁的一种做法是按照 Kruskal 的流程，额外维护一个集合中井花费的最大值，每次合并两个集合的时候看这两个集合中井花费最大值的较大者是否比当前路径成本还大，是的话就合并集合，从总花费中减去那个差。
+
+```cpp
+class Solution {
+public:
+    int fa[10005], id[10005];
+    int Find(int x){
+        return (fa[x] == x ? x: (fa[x] = Find(fa[x])));
+    }
+    int minCostToSupplyWater(int n, vector<int>& wells, vector<vector<int>>& pipes) {
+        int ans = 0, m = pipes.size();
+        for (int i = 1; i <= n; ++i)
+            fa[i] = i, ans += wells[i - 1];
+        for (int i = 0; i < m; ++i)
+            id[i] = i;
+        sort(id, id + m, [&pipes](int i, int j){
+            return pipes[i][2] < pipes[j][2];
+        });
+        for (int i = 0; i < m; ++i){
+            int w = pipes[id[i]][2];
+            int uu = Find(pipes[id[i]][0]), vv = Find(pipes[id[i]][1]);
+            if (uu == vv) continue;
+            if (w < max(wells[uu - 1], wells[vv - 1])){
+                ans -= max(wells[uu - 1], wells[vv - 1]);
+                ans += w;
+                if (wells[uu - 1] > wells[vv - 1]) fa[uu] = vv;
+                else fa[vv] = uu;
+            }
+        }
+        return ans;
     }
 };
 ```
@@ -4797,6 +7672,72 @@ public:
 };
 ```
 
+# 1259
+Catalan 数
+```cpp
+class Solution {
+public:
+    int inv[1005];
+    int numberOfWays(int num_people) {
+        num_people >>= 1;
+        const int M = 1000000007;
+        inv[1] = 1;
+        int ans = 1;
+        for (int i = 2; i <= num_people + 1; ++i)
+            inv[i] = 1ll * (M - M / i) * inv[M % i] % M, 
+            ans = 1ll * ans * inv[i] % M, 
+            ans = 1ll * ans * (i + num_people - 1) % M;
+        return ans;
+    }
+};
+```
+
+# 1326
+可以转换成为一个区间覆盖问题。（注意：这里覆盖的是点之间形成的区间，所以需要事先做一个转换）
+
+## 方法一
+套用区间覆盖问题的经典贪心做法，对区间按照左端点升序、右端点降序排序，然后贪心选择即可。
+
+时间复杂度为 $O(n\log n)$。
+
+```cpp
+class Solution {
+    vector<pair<int, int>> vec;
+public:
+    int minTaps(int n, vector<int>& ranges) {
+        for (int i = 0; i <= n; ++i){
+            int ll = max(0, i - ranges[i]), rr = min(n, i + ranges[i]);
+            if (rr > ll) vec.push_back(make_pair(ll + 1, rr));
+        }
+        sort(vec.begin(), vec.end(), [](const pair<int, int>& pa, const pair<int, int>& pb){
+            if (pa.first == pb.first) return pa.second > pb.second;
+            return pa.first < pb.first; 
+        });
+        if (vec.empty()) return -1;
+        if (vec[0].first > 1) return -1;
+        int ans = 1, m = vec.size(), r = vec[0].second, maxr = vec[0].second;
+        for (int i = 1; i < m; ++i){
+            if (vec[i].first <= r + 1) maxr = max(maxr, vec[i].second);
+            else {
+                if (maxr + 1 < vec[i].first)
+                    return -1;
+                ++ans, r = maxr, --i;
+            }
+        }
+        if (r < n) {
+            if (maxr == n) ++ans;
+            else return -1;
+        }
+        return ans;
+    }
+};
+```
+
+## 方法二
+实际上本题由于区间长度范围不是很大，故可以省略排序这一步，直接对于每一个点记录以该点为左端点的区间中，所有右端点的最大值。
+
+这样时间复杂度就下降到 $O(n)$ 级别。
+
 # LCP 4
 首先，我们可以对棋盘进行黑白染色，使得任意相邻的两个格子颜色不相同。这意味着将格子看作是节点的话，整个期盼就是一个二分图。
 
@@ -4862,6 +7803,38 @@ public:
             }
         }
         return Hungary();
+    }
+};
+```
+
+# 08.13
+多属性 LIS 的变形。
+
+```cpp
+class Solution {
+    int f[3005], id[3005];
+public:
+    int pileBox(vector<vector<int>>& box) {
+        int n = box.size();
+        for (int i = 0; i < n; ++i)
+            id[i] = i;
+        sort(id, id + n, [&](int i, int j){
+            if (box[i][0] == box[j][0]){
+                if (box[i][1] == box[j][1])
+                    return box[i][2] < box[j][2];
+                return box[i][1] < box[j][1];
+            }
+            return box[i][0] < box[j][0];
+        });
+        int ans = 0;
+        for (int i = 0; i < n; ++i){
+            f[i] = box[id[i]][2];
+            for (int j = 0; j < i; ++j)
+                if (box[id[j]][0] < box[id[i]][0] && box[id[j]][1] < box[id[i]][1] && box[id[j]][2] < box[id[i]][2])
+                    f[i] = max(f[i], f[j] + box[id[i]][2]);
+            ans = max(ans, f[i]);
+        }
+        return ans;
     }
 };
 ```

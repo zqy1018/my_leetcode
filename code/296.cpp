@@ -29,15 +29,23 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
-        }
-        while (x < n)
-            x <<= 1, ++ans;
+    vector<int> x, y;
+    int minTotalDistance(vector<vector<int>>& grid) {
+        int n = grid.size();
+        if (!n) return 0;
+        int m = grid[0].size();
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < m; ++j)
+                if (grid[i][j])
+                    x.push_back(i), y.push_back(j);
+        sort(x.begin(), x.end());
+        sort(y.begin(), y.end());
+        int xx = x[x.size() >> 1], yy = y[y.size() >> 1];
+        int ans = 0;
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < m; ++j)
+                if (grid[i][j])
+                    ans += abs(i - xx) + abs(j - yy);
         return ans;
     }
 };

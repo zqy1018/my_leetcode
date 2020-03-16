@@ -29,16 +29,17 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
-        }
-        while (x < n)
-            x <<= 1, ++ans;
-        return ans;
+    int minArea(vector<vector<char>>& image, int x, int y) {
+        int n = image.size(), m = image[0].size();
+        int xx1 = n, xx2 = -1, yy1 = m, yy2 = -1;
+        for (int i = 0; i < n; ++i)
+            for (int j = 0; j < m; ++j)
+                if (image[i][j] == '1')
+                    xx1 = min(xx1, i), 
+                    xx2 = max(xx2, i), 
+                    yy1 = min(yy1, j), 
+                    yy2 = max(yy2, j);
+        return (yy2 - yy1 + 1) * (xx2 - xx1 + 1);
     }
 };
 Solution sol;

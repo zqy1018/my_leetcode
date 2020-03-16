@@ -29,16 +29,24 @@ struct ListNode {
 
 class Solution {
 public:
-    int minPatches(vector<int>& nums, int n) {
-        int x = 1, ans = 0;
-        for (int y: nums){
-            while (y > x)
-                x <<= 1, ++ans;
-            x += y;
+    set<int> st;
+    int kEmptySlots(vector<int>& bulbs, int K) {
+        int n = bulbs.size();
+        for (int i = 0; i < n - K; ++i){
+            int x = bulbs[i];
+            st.insert(x);
+            auto p = st.find(x);
+            auto prev = p, next = p;
+            if (p != st.begin()){
+                --prev;
+                if (x - *prev == K + 1) return i + 1;
+            }
+            ++next;
+            if (next != st.end()){
+                if (*next - x == K + 1) return i + 1;
+            }
         }
-        while (x < n)
-            x <<= 1, ++ans;
-        return ans;
+        return -1;
     }
 };
 Solution sol;
