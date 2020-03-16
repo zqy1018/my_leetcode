@@ -1,5 +1,6 @@
-# my-leetcode
-A place to store my code for leetcode
-
 # Leetcode 代码保管处
 托管了一堆做题的代码，还有一些简要的题解。
+
+之前打比赛的代码也有，但是没有整理过。。。
+
+以后会找时间做一些精度更高的工作（咕咕咕）
