@@ -2519,6 +2519,19 @@ class Solution:
 # 944
 简单比较，注意这个题目中的有序指的是字母的ASCII码不递减。
 
+# 945
+排序然后暴力自增就行。正确性不显然。
+```cpp
+int ans = 0, n = A.size();
+sort(A.begin(), A.end());
+for(int i = 1; i < n; ++i){
+    if (A[i - 1] >= A[i])
+        ans += (A[i - 1] + 1 - A[i]), 
+        A[i] = A[i - 1] + 1;
+}
+return ans;
+```
+
 # 946
 模拟出栈即可。
 
