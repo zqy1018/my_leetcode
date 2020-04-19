@@ -27,33 +27,30 @@ struct ListNode {
     ListNode(int x) : val(x), next(NULL) {}
 };
 
-int to[20005], id[20005], w[20005], nxt[20005], at[3006], cnt;
-int d[3005], l1[10005], l2[10005];
-bool vis[3005];
-void dijkstra(int V, int S){
-    d[S] = 0;
-    for(int i = 0; i < V; ++i){
-        int mind = 2000000000, minp = -1;
-        for(int j = 1; j <= V; ++j)
-            if(mind > d[j] && !vis[j])
-                mind = d[j], minp = j;//寻找当前扩展点
-        vis[i] = true;
-        for(int j = at[minp]; j; j = nxt[j])
-            d[to[j]] = min(d[to[j]], d[minp] + w[j]);//松弛
-    }
-}
 class Solution {
+    int to[20005], id[20005], w[20005], nxt[20005], at[3006], cnt;
+    int d[3005], l1[10005], l2[10005];
+    priority_queue<pair<int, int> > pq;
+    void dijkstra(int V, int S){
+        memset(d, 0x3f, sizeof(d));
+        pq.push(make_pair(0, S));
+        d[S] = 0;
+        for(int i = 0; i < V; ++i){
+            while (!pq.empty()){
+                if (-pq.top().first > d[pq.top().second])
+                    pq.pop();
+                else break;
+            }
+            int minp = pq.top().second, mind = d[minp];
+            pq.pop();
+            for (int j = at[minp]; j; j = nxt[j])
+                if (d[to[j]] > mind + w[j])
+                    d[to[j]] = mind + w[j], 
+                    pq.push(make_pair(-d[to[j]], to[j]));
+        }
+    }
 public:
     int reachableNodes(vector<vector<int>>& edges, int M, int N) {
-        memset(at, 0, sizeof(at));
-        memset(l1, 0, sizeof(l1));
-        memset(l2, 0, sizeof(l2));
-        memset(to, 0, sizeof(to));
-        memset(id, 0, sizeof(id));
-        memset(w, 0, sizeof(w));
-        memset(nxt, 0, sizeof(nxt));
-        memset(d, 0x3f, sizeof(d));
-        memset(vis, 0, sizeof(vis));
         cnt = 0;
         int E = edges.size();
         for (int i = 0; i < E; ++i){
