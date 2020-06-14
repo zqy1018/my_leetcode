@@ -44,26 +44,29 @@ ostream& operator << (ostream& os, const vector<vector<T>>& vec){
     }
     return os;
 }
-
 class Solution {
 public:
-    int minDays(vector<int>& bloomDay, int m, int k) {
-        int n = bloomDay.size();
-        if (1ll * m * k > 1ll * n) return -1;
-        int l = 0, r = 1000000000;
-        while (r > l){
-            int mid = (l + r) >> 1;
-            int cnt = 0, ccnt = 0;
-            for (int i = 0; i < n; ++i){
-                bool ok = bloomDay[i] <= mid;
-                if (ok) ++ccnt;
-                else cnt += ccnt / k, ccnt = 0;
-            }
-            cnt += ccnt / k;
-            if (cnt >= m) r = mid;
-            else l = mid + 1;
+    int findLeastNumOfUniqueInts(vector<int>& arr, int k) {
+        sort(arr.begin(), arr.end());
+        int n = arr.size();
+        vector<int> vec;
+        for (int i = 0; i < n; ){
+            int j = i;
+            while (j < n && arr[i] == arr[j])
+                ++j;
+            vec.push_back(j - i);
+            i = j;
         }
-        return l;
+        sort(vec.begin(), vec.end());
+        int t = vec.size();
+        int ans = 0;
+        for (int i = 0; i < t; ++i){
+            if (k < vec[i]) {
+                ans = t - i;
+                break;
+            }else k -= vec[i];
+        }
+        return ans;
     }
 };
 Solution sol;

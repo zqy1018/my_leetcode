@@ -44,28 +44,14 @@ ostream& operator << (ostream& os, const vector<vector<T>>& vec){
     }
     return os;
 }
+
 class Solution {
 public:
-    int findLeastNumOfUniqueInts(vector<int>& arr, int k) {
-        sort(arr.begin(), arr.end());
-        int n = arr.size();
-        vector<int> vec;
-        for (int i = 0; i < n; ){
-            int j = i;
-            while (j < n && arr[i] == arr[j])
-                ++j;
-            vec.push_back(j - i);
-            i = j;
-        }
-        sort(vec.begin(), vec.end());
-        int t = vec.size();
-        int ans = 0;
-        for (int i = 0; i < t; ++i){
-            if (k < vec[i]) {
-                ans = t - i;
-                break;
-            }else k -= vec[i];
-        }
+    vector<int> runningSum(vector<int>& nums) {
+        vector<int> ans;
+        int sum = 0;
+        for (int x: nums)
+            sum += x, ans.push_back(sum);
         return ans;
     }
 };

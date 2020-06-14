@@ -47,12 +47,23 @@ ostream& operator << (ostream& os, const vector<vector<T>>& vec){
 
 class Solution {
 public:
-    vector<int> runningSum(vector<int>& nums) {
-        vector<int> ans;
-        int sum = 0;
-        for (int x: nums)
-            sum += x, ans.push_back(sum);
-        return ans;
+    int minDays(vector<int>& bloomDay, int m, int k) {
+        int n = bloomDay.size();
+        if (1ll * m * k > 1ll * n) return -1;
+        int l = 0, r = 1000000000;
+        while (r > l){
+            int mid = (l + r) >> 1;
+            int cnt = 0, ccnt = 0;
+            for (int i = 0; i < n; ++i){
+                bool ok = bloomDay[i] <= mid;
+                if (ok) ++ccnt;
+                else cnt += ccnt / k, ccnt = 0;
+            }
+            cnt += ccnt / k;
+            if (cnt >= m) r = mid;
+            else l = mid + 1;
+        }
+        return l;
     }
 };
 Solution sol;
