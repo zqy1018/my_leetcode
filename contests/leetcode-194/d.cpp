@@ -100,7 +100,7 @@ public:
         int res = kruskal(-1, n);
         for (int i = 0; i < m; ++i){
             if (kruskal(i, n) != res) key.push_back(i);
-            else if (kruskal2(i, n) == res) key.push_back(i);
+            else if (kruskal2(i, n) == res) nkey.push_back(i);
         }
         vector<vector<int> > vec;
         vec.push_back(key);
