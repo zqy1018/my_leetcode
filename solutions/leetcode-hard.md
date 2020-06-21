@@ -7400,12 +7400,31 @@ public:
 
 
 # 1157
-python 暴力居然卡了过去。。。
 
-这可能是一个失误，因为比赛的时候是小数据（最多 500 次询问），而在正式题目中变成了 10000。
+Python 暴力居然卡了过去。这可能是一个失误，因为比赛的时候是小数据（最多 500 次询问），而在正式题目中变成了 10000。
 
-其实这道题就是区间众数，这个问题有很多种解法，下面给出一些解法。
+## 暴力
 
+暴力的做法就是真的暴力，直接用 Python 内置的数据结构即可。
+
+```python
+class MajorityChecker:
+
+    def __init__(self, arr: List[int]):
+        self.ar = arr
+
+    def query(self, left: int, right: int, threshold: int) -> int:
+        ct = collections.Counter(self.ar[left: right + 1])
+        lis = ct.most_common(1)
+        k, v = lis[0]
+        if v >= threshold:
+            return k
+        return -1
+```
+
+## 不暴力
+
+具体见本题题解评论区或者[我写的这篇笔记](https://github.com/zqy1018/tutorials_and_notes/blob/master/algo_notes/about_mode.pdf)。
 
 # 1163
 首先要发现：答案就是字符串的字典序最大的后缀。
@@ -7973,6 +7992,84 @@ public:
     }
 };
 ```
+
+# 1489
+
+先求一次 MST，设权值和为 $v$。然后对于边 $e$：
+1. 边 $e$ 被删了，用剩余的边求 MST，如果权值和大于 $v$ 或者不连通，那么 $e$ 是关键的。
+2. 否则，先把 $e$ 加入已选择的边集中，再尝试根据 Kruskal 算法加入剩余的边。如果权值和为 $v$，那么 $e$ 是伪关键的。
+
+由于点数和边数都很少，因此可以暴力求解。时间复杂度约为 $O(|E|(|V| + |E|\log |E|))$。
+
+（但也因此，这个算法在数据量很大的情况下就无效了。~~属实懒狗做法。~~）
+
+```cpp
+class Solution {
+    pair<int, pair<int, int> > pp[205], p[205];
+    int fa[105], m;
+    int Find(int x){
+        return (x == fa[x] ? x: (fa[x] = Find(fa[x])));
+    }
+    bool Union(int x, int y){
+        int u = Find(x), v = Find(y);
+        if (u == v) return false;
+        fa[u] = v;
+        return true;
+    }
+    int kruskal(int x, int n){
+        int cnt = n, cost = 0;
+        int tot = 0;
+        for (int i = 0; i < m; ++i){
+            if (i != x) p[tot++] = pp[i];
+        }
+        for (int i = 0; i < n; ++i)
+            fa[i] = i;
+        sort(p, p + tot);
+        for (int i = 0; i < tot; ++i){
+            if (Union(p[i].second.first, p[i].second.second))
+                --cnt, cost += p[i].first;
+        }
+        return cnt == 1 ? cost: INT_MAX;
+    }
+    int kruskal2(int x, int n){
+        int cnt = n, cost = 0;
+        int tot = 0;
+        for (int i = 0; i < n; ++i)
+            fa[i] = i;
+        for (int i = 0; i < m; ++i){
+            if (i != x) p[tot++] = pp[i];
+            else cost += pp[i].first, Union(pp[i].second.first, pp[i].second.second), --cnt;
+        }
+        sort(p, p + tot);
+        for (int i = 0; i < tot; ++i){
+            if (Union(p[i].second.first, p[i].second.second))
+                --cnt, cost += p[i].first;
+        }
+        return cnt == 1 ? cost: INT_MAX;
+    }
+public:
+    vector<vector<int>> findCriticalAndPseudoCriticalEdges(int n, vector<vector<int>>& edges) {
+        vector<int> key, nkey;
+        m = edges.size();
+        for (int i = 0; i < m; ++i){
+            pp[i].first = edges[i][2], 
+            pp[i].second.first = edges[i][0], 
+            pp[i].second.second = edges[i][1];
+        }
+        int res = kruskal(-1, n);
+        for (int i = 0; i < m; ++i){
+            if (kruskal(i, n) != res) key.push_back(i);
+            else if (kruskal2(i, n) == res) nkey.push_back(i);
+        }
+        vector<vector<int> > vec;
+        vec.push_back(key);
+        vec.push_back(nkey);
+        return vec;
+    }
+};
+```
+
+更加优秀的方法放在[这个里面](https://github.com/zqy1018/sjtu_oj_solutions/blob/master/solutions/sjtu1310.pdf)。
 
 # LCP 4
 首先，我们可以对棋盘进行黑白染色，使得任意相邻的两个格子颜色不相同。这意味着将格子看作是节点的话，整个期盼就是一个二分图。
