@@ -1,12 +1,14 @@
-# Leetcode Hard难度 题解
+# Leetcode Hard 难度 题解
 只写简单和中等题就是在摸鱼。
 
 # 4
 真是一个不错的题。
 
-考虑二分。可以发现，如果两个序列归并，那么第一个中位数之前会有 $tot=\frac{n+m-1}{2}$ 个数。考虑把这些数的来源，设第一个序列的前 $p$ 个数，和第二个序列的前 $tot-p$ 个数构成了这些数。对 $p$ 二分，设当前值为 $mid$ ，判定方法是如果第一个序列下标为 $mid$ 的数（即，假定的“中位数”）小于第二个序列下标为 $tot-mid-1$ 的数（即，假定的前 $tot$ 个数的最大者），则说明 $p$ 太小。
+考虑二分。可以发现，如果两个序列归并，那么第一个中位数之前会有 $tot=\lfloor\frac{n+m-1}{2}\rfloor$ 个数。
 
-边界情况很多，包括二分的上下限和答案的位置，需要多次特判。
+考虑这些数的来源，设第一个序列的前 $p$ 个数，和第二个序列的前 $tot-p$ 个数构成了这些数。对 $p$ 二分，设当前值为 $mid$ ，判定方法是如果第一个序列下标为 $mid$ 的数（即，假定的“中位数”）小于第二个序列下标为 $tot-mid-1$ 的数（即，假定的前 $tot$ 个数的最大者），则说明 $p$ 太小。
+
+边界情况很多，包括二分的上下限和答案的位置，需要多次特判。但二分的部分并不复杂，反而是求最终解非常麻烦。
 
 ```cpp
 class Solution {
@@ -22,6 +24,7 @@ public:
                 l = mid + 1;
             else r = mid;
         }
+        // 以上为二分的主要部分，下面求解
         if((n + m) & 1) {
             if(l >= n) return nums2[pos - l];
             if(pos - l >= m) return nums1[l];
@@ -41,21 +44,22 @@ public:
 ```
 
 # 10
+
 有点神奇的 DP。
 
 首先这个题在某种意义上有点复杂，如果能够把诸如 `x*` 的字符匹配形式换成单个字符的话，代码会简便一些。下面为了方便起见，认为形式 `x*` 是一个字符。
 
-考虑 s 串的前 $i$ 个字符去和 $p$ 的前 $j$ 个字符匹配，成功与否由 $f[i][j]$ 指示。现在匹配到了 $s[i]$ 和 $p[j]$：
+考虑 s 串的前 $i$ 个字符去和 $p$ 的前 $j$ 个字符匹配，成功与否由 $f(i, j)$ 指示。现在匹配到了 $s_i$ 和 $p_j$：
 
-1. 如果 $p[j]$ 是字母，那么答案仅仅是 $f[i-1][j-1]$ 和 $s[i]=p[j]$ 的逻辑与。
-2. 如果 $p[j]$ 是 `.`，那么答案仅仅是 $f[i-1][j-1]$。
-3. 如果 $p[j]$ 具有 `x*` 形式，那么答案可能来自 $f[i][j-1]$（表明该星号没有匹配到任何一个字符）：
-   1. 如果 $p[j]$ 是 `.*`，那么答案还可以来自 $f[i-1][j-1]$ 和 $f[i-1][j]$。前者表明开始匹配，后者表明沿着之前利用星号匹配的部分继续匹配。
-   2. 否则，根据 $x=s[i]$ 与否判断：
-      1. 是，那么答案还可以来自 $f[i-1][j-1]$，表明开始匹配；如果 $s[i-1]$ 和 $s[i]$ 相同，那么答案还可以来自 $f[i-1][j]$，表明沿着之前利用星号匹配的部分继续匹配。
+1. 如果 $p_j$ 是字母，那么答案仅仅是 $f(i-1, j-1)$ 和 $s_i=p_j$ 的逻辑与。
+2. 如果 $p_j$ 是 `.`，那么答案仅仅是 $f(i-1, j-1)$。
+3. 如果 $p_j$ 具有 `x*` 形式，那么答案可能来自 $f(i, j-1)$（表明该星号没有匹配到任何一个字符）：
+   1. 如果 $p_j$ 是 `.*`，那么答案还可以来自 $f(i-1, j-1)$ 和 $f(i-1, j)$。前者表明开始匹配，后者表明沿着之前利用星号匹配的部分继续匹配。
+   2. 否则，根据 $x=s_i$ 与否判断：
+      1. 是，那么答案还可以来自 $f(i-1, j-1)$，表明开始匹配；如果 $s_{i-1}$ 和 $s_i$ 相同，那么答案还可以来自 $f(i-1, j)$，表明沿着之前利用星号匹配的部分继续匹配。
       2. 否，那么不能匹配任何字符。
 
-一开始有一个初始化：$f[0][0]=\text{true}$。但是注意，星号可以匹配空串，所以一开始还要检查如果 $p$ 以星号开头，那么匹配空串是成功的。
+一开始有一个初始化：$f(0, 0)=\text{true}$。但是注意，星号可以匹配空串，所以一开始还要检查如果 $p$ 以星号开头，那么匹配空串是成功的。
 ```cpp
 class Solution {
 public:
@@ -95,6 +99,7 @@ public:
 ```
 
 # 23
+
 经典问题。用一个堆可以解决。具体操作是：先把所有链表的第一个节点放进小根堆里（按照值比较），然后每一次从堆中弹出具有当前最小值的节点，向堆中放入它链向的下一个节点，再从它所属的链表中将其删去。
 
 设总共有 $N$ 个节点，那么堆的大小不超过 $K$ ，总时间复杂度是 $O(N\log K)$ 。
@@ -132,7 +137,9 @@ public:
 还有一个做法就是将这些链表先两两合并，然后再两两合并，循环往复，经过 $\log_2 k$ 轮后只剩下一个链表，这就是答案。因为整个合并的过程可以看作是一棵由链表作为节点的满二叉树从底向上的构建过程，而向上一层的时间复杂度是 $O(N)$ ，总共有 $\log_2 k$ 层，所以总时间复杂度和上面是一样的。
 
 # 25
+
 画个图就行了。注意链表不要链来链去链出环来，那就很麻烦了。
+
 ```cpp
 class Solution {
 public:
@@ -167,7 +174,6 @@ public:
 经典的暴力 DFS。不需要剪枝也可以过。
 ```cpp
 class Solution {
-public:
     vector<int> wpos, vis;
     vector<int> ans;
     void dfs(int pos, int cur, int left, string& s, vector<string>& words){
@@ -186,6 +192,7 @@ public:
         }
         ++vis[cur];
     }
+public:
     vector<int> findSubstring(string s, vector<string>& words) {
         int m = words.size();
         if (!m) return vector<int>();
@@ -216,8 +223,8 @@ public:
 利用每一个单词的长度都相同的特性构建滑动窗口，这样可以避免大量的重复判定。
 ```cpp
 class Solution {
-public:
     vector<int> vis, ans;
+public:
     vector<int> findSubstring(string s, vector<string>& words) {
         int m = words.size();
         if (!m) return vector<int>();
@@ -288,16 +295,16 @@ public:
 # 37
 
 ## 方法一
+
 采用一些简单的剪枝手法。
 
-用一个三元组 $(\text{type}, \text{id}, \text{digit})$ 来表示当前的填写状态，其中 type=0 表示行，type=1 表示列，type=2 表示 3 * 3 的方格。同时用一个列表 `lis` 记录当前尚未填写的位置。
+用一个三元组 $(\text{type}, \text{id}, \text{digit})$ 来表示当前的填写状态，其中 $\text{type}=0$ 表示行，$\text{type}=1$ 表示列，$\text{type}=2$ 表示 3 * 3 的方格。同时用一个列表 `lis` 记录当前尚未填写的位置。
 
 每次 DFS 时，填写一个空之后就在列表中剩下没有填写的位置里找出自由度最低的空格，将其作为下一个搜索对象，直到所有空格都被填写为止。
 
 经实践，这种方法的效率在面对一般的数独题目还是非常好的。
 ```cpp
 class Solution {
-public:
     bool vis[3][11][11]; // 0 行 1 列 2 宫 
     int lis[81][2], len_lis;
     void get(int at){
@@ -331,6 +338,7 @@ public:
         }
         return false;
     }
+public:
     void solveSudoku(vector<vector<char>>& board) {
         memset(vis, 0, sizeof(vis));
         memset(lis, 0, sizeof(lis));
@@ -356,16 +364,13 @@ DLX 算法。
 
 ```
 
-
 # 41
-基本同448，物归原主方法。
+
+基本同 448，物归原主方法。
+
 ```python
-class Solution(object):
-    def firstMissingPositive(self, nums):
-        """
-        :type nums: List[int]
-        :rtype: int
-        """
+class Solution:
+    def firstMissingPositive(self, nums: List[int]) -> int:
         if nums == []:
             return 1
         len1 = len(nums)
@@ -383,11 +388,13 @@ class Solution(object):
 ```
 
 # 42
+
 一开始写了半天单调栈，发现单调栈好像根本搞不出来。。。
 
 对这个题，我们考虑每一个位置水有多深。显然，一个水的深度取决于其左右两边的高度，更具体的说是左右两边高度最大值的较小值。用这个值减掉该位置的高度就是该位置水应当有的高度。这个值可能为负，所以要和 $0$ 取 $\max$。
 
 说白了写不出就是基础不扎实或者是问题没考虑明白。
+
 ```cpp
 class Solution {
 public:
@@ -441,10 +448,13 @@ public:
 
 
 # 45
+
+## 方法一
+
 写了一个谜一样的树状数组。。。
+
 ```cpp
 class Solution {
-public:
     vector<int> bb;
     int lowbit(int x){
         return x & (-x);
@@ -459,6 +469,7 @@ public:
             res = min(res, bb[k]), k -= lowbit(k);
         return res;
     }
+public:
     int jump(vector<int>& nums) {
         vector<pair<int, int> > nnums;
         vector<int> f;
@@ -483,18 +494,36 @@ public:
     }
 };
 ```
-但实际上这个题没有这么麻烦，
 
+## 方法二
+
+容易发现这是一个 DAG，且点是自左往右扩展的，因此容易写一个普通的 DP。
+
+```cpp
+class Solution {
+    vector<int> f;
+public:
+    int jump(vector<int>& nums) {
+        int n = nums.size(), cur = 1;
+        f = vector<int>(n, 0x3f3f3f3f);
+        f[0] = 0;
+        for (int i = 0; cur < n; ++i)
+            while (cur < n && cur <= i + nums[i])
+                f[cur] = f[i] + 1, ++cur;
+        return f[n - 1];
+    }
+};
+```
+
+甚至也可以把 DP 数组省了。
 
 # 51
-比下面这个难
+
+比 52 难，因为要输出方案。
+
 ```python
 class Solution:
     def solveNQueens(self, n: int) -> List[List[str]]:
-        """
-        :type n: int
-        :rtype: int
-        """
         ans = [0] * n
         aans = []
         def solve(n, cur_id, left, straight, right):
@@ -516,14 +545,12 @@ class Solution:
 ```
 
 # 52
-这算困难吗。。。算了还是写在这
+
+经典问题，可以使用数组来记录，也可以使用位运算来做。
+
 ```python
 class Solution:
-    def totalNQueens(self, n):
-        """
-        :type n: int
-        :rtype: int
-        """
+    def totalNQueens(self, n: int) -> int:
         ans = 0
         def solve(n, cur_id, left, straight, right):
             nonlocal ans
@@ -592,19 +619,31 @@ public:
 ```
 
 # 65
-偷懒
+
+## 方法一
+
+偷懒。
+
 ```python
-class Solution(object):
-    def isNumber(self, s):
+class Solution:
+    def isNumber(self, s: str) -> bool:
         try:
-            a = complex(s)
+            a = float(s)
         except ValueError:
             return False
         return True
 ```
 
+## 方法二
+
+我们使用一些 parsing 的技术。
+
+
+
 # 68
+
 大模拟，大力分类讨论
+
 ```cpp
 class Solution {
 public:
@@ -647,7 +686,9 @@ public:
 ```
 
 # 72
-简单DP
+
+经典 DP。
+
 ```cpp
 class Solution {
 public:
@@ -673,12 +714,14 @@ public:
 ```
 
 # 76
+
 尺取法
+
 ```cpp
 class Solution {
+    int cnt[129], cnt2[129];
 public:
     string minWindow(string s, string t) {
-        vector<int> cnt(129, 0), cnt2(129, 0);
         int i = 0, j = -1, n = s.size(), m = t.size();
         int tot = 0, curtot = 0;
         int ans = n + 1, posi = -1, posj = -1;
@@ -707,7 +750,9 @@ public:
 ```
 
 # 84
+
 单调栈经典题
+
 ```cpp
 class Solution {
 public:
@@ -731,7 +776,9 @@ public:
 ```
 
 # 85
-扩展单调栈
+
+扩展单调栈，或者用垂线法
+
 ```cpp
 class Solution {
 public:
@@ -765,15 +812,16 @@ public:
 ```
 
 # 87
+
 考虑将两个字符串切分，只有两种可能：
 
 1. 第一个的前半部分配第二个的前半部分，第一个的后半部分配第二个的后半部分。
 2. 第一个的前半部分配第二个的后半部分，第一个的后半部分配第二个的前半部分。
 
 然后判定配对成功与否用一个桶即可，这样递归下去也跑的比较快。
+
 ```cpp
 class Solution {
-public:
     bool dfs(string& s1, string& s2, int l1, int r1, int l2, int r2, bool flag){
         if (r1 - l1 == 1)
             return s1[l1] == s2[l2];
@@ -800,6 +848,7 @@ public:
         }
         return false;
     }
+public:
     bool isScramble(string s1, string s2) {
         return dfs(s1, s2, 0, s1.length(), 0, s2.length(), true) || 
             dfs(s1, s2, 0, s1.length(), 0, s2.length(), false);
@@ -808,7 +857,9 @@ public:
 ```
 
 # 97
+
 简单的 DP。可以压成一维。
+
 ```cpp
 class Solution {
 public:
@@ -841,12 +892,13 @@ public:
 ```
 
 # 99
-观察可以发现：整个中序遍历序列中，只会出现一或两次前一元素大于后一元素的情况。而且一次的情况可以视作是两次该结构出现在同一位置的特殊情况。
 
-这样规约后得到：对于序列中靠前的该结构，其前一元素是被交换的；对于序列中靠后的该结构，其后一元素是被交换的。这样就找到了两个交换了的元素。
+设需要被恢复的树的中序遍历序列为 $\left\lbrace a_i\right\rbrace$。那么观察可以发现：必然存在 $i < j$ 使得 $a_{i} > a_{i+1}, a_{j-1} > a_{j}$。则被交换的两个元素即为 $a_{i}, a_{j}$。
+
+因此只需要一次 DFS 找出 $a_i, a_j$ 对应的节点即可。
+
 ```cpp
 class Solution {
-public:
     TreeNode *lst1, *targ1, *targ2;
     void dfs(TreeNode* root){
         if (root == NULL) return ;
@@ -858,6 +910,7 @@ public:
         lst1 = root;
         dfs(root->right);
     }
+public:
     void recoverTree(TreeNode* root) {
         lst1 = NULL, targ1 = targ2 = NULL;
         dfs(root);
@@ -865,8 +918,6 @@ public:
     }
 };
 ```
-
-注：这里的代码并不是一开始交上去的代码，而是做了精简的版本。原版考虑了一个更加复杂的结构，但也是对的。
 
 # 115
 一个挺水的计数DP，但是可以优化到不错的效果。
@@ -3418,7 +3469,7 @@ public:
 同 UVa 10559。
 
 ## 方法一
-设 $f(i, j, k)$ 为当前区间为 $[i, j]$，且区间中消除到有 $k$ 个和 $i$ 处颜色相同的方块时，可以得到的最大分数。显然，答案为 $f(1, n, 0)$。
+设 $f(i, j, k)$ 为当前区间为 $[i, j]$，且区间中消除到有 $k$ 个和 $i$ 处颜色相同的方块时（和 $j$ 处颜色相同也行，只是转移要稍微变一下），可以得到的最大分数。显然，答案为 $f(1, n, 0)$。
 
 当 $k\neq 0$ 时，要考虑从 $k-1$ 转移过来。此时考虑从 $[i, j]$ 中遍历 $l$，当第 $l$ 个方块颜色和第 $i$ 个相同时，将从 $l$ 左或者从 $l$ 右开始的一部分作为从 $k-1$ 转移过来的部分，另一部分消去。因为消去的顺序不影响结果，此处将右边一半消去。从而有：
 $$
@@ -7564,7 +7615,6 @@ public:
 # 1176
 先对每一个单词算出来位向量然后再用字谜的位向量去匹配即可，时间复杂度 $O(N+2^6 M)$，$N$ 是单词的字符数目，$M$ 是字谜的数目。
 
-~~考了两个位运算的题目，这个比赛不行啊~~
 ```cpp
 class Solution {
 public:
@@ -7914,6 +7964,7 @@ public:
 这样时间复杂度就下降到 $O(n)$ 级别。
 
 # 1397
+
 本题和[ GT 考试](https://www.luogu.com.cn/problem/P3193)一题十分相似，但是数据限制上有很大的差别。
 
 相似的地方在于，两题都用了 KMP 算法构造失配转移的 `next` 数组，基本的 DP 设定也都是用 $f(i, j)$ 表示使用完前 $i$ 个字符，匹配到禁止串（这里是 `evil`）的前 $j$ 个字符的方案数目。
@@ -8140,38 +8191,6 @@ public:
 };
 ```
 
-# 08.13
-多属性 LIS 的变形。
-
-```cpp
-class Solution {
-    int f[3005], id[3005];
-public:
-    int pileBox(vector<vector<int>>& box) {
-        int n = box.size();
-        for (int i = 0; i < n; ++i)
-            id[i] = i;
-        sort(id, id + n, [&](int i, int j){
-            if (box[i][0] == box[j][0]){
-                if (box[i][1] == box[j][1])
-                    return box[i][2] < box[j][2];
-                return box[i][1] < box[j][1];
-            }
-            return box[i][0] < box[j][0];
-        });
-        int ans = 0;
-        for (int i = 0; i < n; ++i){
-            f[i] = box[id[i]][2];
-            for (int j = 0; j < i; ++j)
-                if (box[id[j]][0] < box[id[i]][0] && box[id[j]][1] < box[id[i]][1] && box[id[j]][2] < box[id[i]][2])
-                    f[i] = max(f[i], f[j] + box[id[i]][2]);
-            ans = max(ans, f[i]);
-        }
-        return ans;
-    }
-};
-```
-
 # LCP 10
 一看就是一个树形 DP。我们设 $f(i)$ 为节点 $i$ 的最短时间，然后分类讨论。
 
@@ -8217,4 +8236,36 @@ class Solution:
 
         ans, _ = dfs(root)
         return ans
+```
+
+# 08.13
+多属性 LIS 的变形。
+
+```cpp
+class Solution {
+    int f[3005], id[3005];
+public:
+    int pileBox(vector<vector<int>>& box) {
+        int n = box.size();
+        for (int i = 0; i < n; ++i)
+            id[i] = i;
+        sort(id, id + n, [&](int i, int j){
+            if (box[i][0] == box[j][0]){
+                if (box[i][1] == box[j][1])
+                    return box[i][2] < box[j][2];
+                return box[i][1] < box[j][1];
+            }
+            return box[i][0] < box[j][0];
+        });
+        int ans = 0;
+        for (int i = 0; i < n; ++i){
+            f[i] = box[id[i]][2];
+            for (int j = 0; j < i; ++j)
+                if (box[id[j]][0] < box[id[i]][0] && box[id[j]][1] < box[id[i]][1] && box[id[j]][2] < box[id[i]][2])
+                    f[i] = max(f[i], f[j] + box[id[i]][2]);
+            ans = max(ans, f[i]);
+        }
+        return ans;
+    }
+};
 ```
